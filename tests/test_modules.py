@@ -88,3 +88,35 @@ def test_tts_dummy_synthesize(tmp_path):
     assert success is True
     assert output_file.exists()
     assert output_file.stat().st_size > 0
+
+def test_stt_dummy(tmp_path):
+    from stt.generator import TaigiSTT
+    stt = TaigiSTT()
+    stt.provider = "dummy"
+    
+    # 建立一個測試用的虛擬檔案
+    audio_file = tmp_path / "test.webm"
+    audio_file.write_bytes(b"dummy")
+    
+    recognized = stt.speech_to_text(str(audio_file), target_text="買物件")
+    assert recognized == "買物件"
+
+def test_api_stt_endpoint(tmp_path):
+    from fastapi.testclient import TestClient
+    from server import app
+    
+    client = TestClient(app)
+    
+    # 建立一個測試用的音訊檔案
+    test_file = tmp_path / "test.webm"
+    test_file.write_bytes(b"dummy audio content")
+    
+    with open(test_file, "rb") as f:
+        response = client.post(
+            "/api/stt",
+            files={"file": ("test.webm", f, "audio/webm")},
+            data={"target_text": "多謝"}
+        )
+        
+    assert response.status_code == 200
+    assert response.json() == {"text": "多謝"}

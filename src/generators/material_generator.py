@@ -271,10 +271,15 @@ class MaterialGenerator:
                   <div class="hint-text">點擊翻面看翻譯</div>
                 </div>
                 <!-- 反面 -->
-                <div class="card-back">
+                <div class="card-back" onclick="event.stopPropagation()">
                   <div class="back-title">華語翻譯</div>
                   <div class="translation-display">{vocab.get('zh_tw')}</div>
-                  <div class="back-hint">點擊翻回正面</div>
+                  <div class="speaking-section">
+                    <button class="mic-btn" id="mic-vocab-{idx}" onclick="toggleRecording(event, 'vocab', {idx}, '{vocab.get('hanji')}')">🎤 錄音練習</button>
+                    <div class="speaking-status" id="status-vocab-{idx}"></div>
+                    <div class="evaluation-result" id="result-vocab-{idx}"></div>
+                  </div>
+                  <div class="back-hint" onclick="flipCard({idx})">點擊翻回正面</div>
                 </div>
               </div>
             </div>
@@ -290,13 +295,18 @@ class MaterialGenerator:
                 <div class="speaker-name">{dia.get('role')}</div>
                 <div class="dialogue-sentence">
                   {dia.get('hanji')}
-                  <span class="bubble-audio-btns">
+                  <span class="bubble-audio-btns" onclick="event.stopPropagation()">
                     <button class="bubble-audio-btn" onclick="playDialogue(event, '{dia.get('audio_file', '')}', 1.0)">▶️ 正常</button>
                     <button class="bubble-audio-btn slow" onclick="playDialogue(event, '{dia.get('audio_file', '')}', 0.75)">🐌 慢速</button>
+                    <button class="bubble-audio-btn mic" id="mic-dialogue-{idx}" onclick="toggleRecording(event, 'dialogue', {idx}, '{dia.get('hanji')}')">🎤 練習</button>
                   </span>
                 </div>
                 <div class="dialogue-tailo">{dia.get('tailo_diacritic')}</div>
                 <div class="dialogue-zh" id="diag-zh-{idx}">{dia.get('zh_tw')}</div>
+                <div class="speaking-section bubble-speak" id="section-dialogue-{idx}" onclick="event.stopPropagation()">
+                  <div class="speaking-status" id="status-dialogue-{idx}"></div>
+                  <div class="evaluation-result" id="result-dialogue-{idx}"></div>
+                </div>
                 <div class="dialogue-hint">點擊切換中文翻譯</div>
               </div>
             </div>
@@ -810,7 +820,179 @@ class MaterialGenerator:
     }}
     
     .bubble-audio-btn.slow:hover {{
+      background-color: var(--accent);
+    }}
+
+    /* 口語練習與發音評估樣式 */
+    .speaking-section {{
+      margin-top: 15px;
+      padding: 10px;
+      background-color: rgba(255,255,255,0.6);
+      border-radius: 10px;
+      border: 1px dashed var(--border);
+      text-align: center;
+    }}
+    
+    .speaking-section.bubble-speak {{
+      margin-top: 10px;
+      background-color: rgba(255,255,255,0.4);
+      border: 1px dashed var(--border);
+      text-align: left;
+      display: none; /* 預設隱藏，有錄音才顯示 */
+    }}
+    
+    .mic-btn, .bubble-audio-btn.mic {{
+      background-color: #2a6f97;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background-color 0.2s;
+    }}
+    
+    .bubble-audio-btn.mic {{
+      background-color: #2a6f97;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      border-radius: 12px;
+    }}
+    
+    .mic-btn:hover, .bubble-audio-btn.mic:hover {{
+      background-color: #014f86;
+    }}
+    
+    .mic-btn.recording, .bubble-audio-btn.mic.recording {{
+      background-color: var(--wrong) !important;
+      animation: mic-pulse 1.2s infinite;
+    }}
+    
+    @keyframes mic-pulse {{
+      0% {{ transform: scale(1); }}
+      50% {{ transform: scale(1.05); }}
+      100% {{ transform: scale(1); }}
+    }}
+    
+    .speaking-status {{
+      font-size: 0.8rem;
+      color: var(--text);
+      margin: 8px 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+    }}
+    
+    .pulse-dot {{
+      animation: pulse-red 1s infinite;
+    }}
+    
+    @keyframes pulse-red {{
+      0% {{ opacity: 0.3; }}
+      50% {{ opacity: 1; }}
+      100% {{ opacity: 0.3; }}
+    }}
+    
+    .speak-controls {{
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 5px;
+    }}
+    
+    .speak-play-btn, .speak-eval-btn {{
+      background-color: white;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }}
+    
+    .speak-play-btn:hover {{
+      background-color: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }}
+    
+    .speak-eval-btn {{
       background-color: var(--primary);
+      color: white;
+      border: none;
+    }}
+    
+    .speak-eval-btn:hover {{
+      background-color: var(--accent);
+    }}
+    
+    .eval-card {{
+      margin-top: 10px;
+      padding: 10px;
+      background-color: white;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      text-align: left;
+      font-size: 0.8rem;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.02);
+    }}
+    
+    .eval-score-row {{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--primary-light);
+    }}
+    
+    .eval-score {{
+      font-weight: 900;
+      font-size: 1.1rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }}
+    
+    .score-excellent {{
+      background-color: var(--correct-bg);
+      color: var(--correct);
+    }}
+    
+    .score-good {{
+      background-color: #fff3cd;
+      color: #856404;
+    }}
+    
+    .score-retry {{
+      background-color: var(--wrong-bg);
+      color: var(--wrong);
+    }}
+    
+    .eval-feedback {{
+      font-weight: bold;
+      color: var(--primary);
+    }}
+    
+    .eval-details {{
+      color: #666;
+      line-height: 1.4;
+    }}
+    
+    .offline-warning {{
+      margin-top: 8px;
+      font-size: 0.7rem;
+      color: #856404;
+      background-color: #fff3cd;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #ffeeba;
     }}
   </style>
 </head>
@@ -946,6 +1128,222 @@ class MaterialGenerator:
       }} else {{
         zhDiv.style.display = "block";
       }}
+    }}
+
+    // 語音錄音與發音評估邏輯
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+    let currentRecordType = null; // 'vocab' or 'dialogue'
+    let currentRecordIdx = null;
+    let currentTargetText = '';
+    let recordingStream = null;
+
+    function toggleRecording(event, type, idx, targetText) {{
+      event.stopPropagation();
+      const btnId = "mic-" + type + "-" + idx;
+      const btn = document.getElementById(btnId);
+      const statusDiv = document.getElementById("status-" + type + "-" + idx);
+      const resultDiv = document.getElementById("result-" + type + "-" + idx);
+      
+      if (type === "dialogue") {{
+        const section = document.getElementById("section-dialogue-" + idx);
+        if (section) section.style.display = "block";
+      }}
+
+      if (isRecording) {{
+        if (currentRecordType === type && currentRecordIdx === idx) {{
+          stopRecording();
+          return;
+        }} else {{
+          stopRecording();
+        }}
+      }}
+
+      startRecording(type, idx, targetText, btn, statusDiv, resultDiv);
+    }}
+
+    function startRecording(type, idx, targetText, btn, statusDiv, resultDiv) {{
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {{
+        alert("您的瀏覽器不支援錄音功能。請使用 Chrome 或 Edge 瀏覽器。");
+        return;
+      }}
+      
+      navigator.mediaDevices.getUserMedia({{ audio: true }})
+        .then(stream => {{
+          recordingStream = stream;
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+          isRecording = true;
+          currentRecordType = type;
+          currentRecordIdx = idx;
+          currentTargetText = targetText;
+
+          mediaRecorder.ondataavailable = e => {{
+            audioChunks.push(e.data);
+          }};
+
+          mediaRecorder.onstop = () => {{
+            const audioBlob = new Blob(audioChunks, {{ type: 'audio/webm' }});
+            const audioUrl = URL.createObjectURL(audioBlob);
+            
+            statusDiv.innerHTML = `
+              <div class="speak-controls">
+                <button class="speak-play-btn" onclick="playRecord(event, '$${{audioUrl}}')">▶️ 播放我的發音</button>
+                <button class="speak-eval-btn" onclick="evaluateSpeech(event, '$${{type}}', $${{idx}}, '$${{targetText}}')">🎯 開始評估</button>
+              </div>
+            `;
+            
+            // 釋放麥克風
+            recordingStream.getTracks().forEach(track => track.stop());
+          }};
+
+          mediaRecorder.start();
+          btn.innerText = "⏹️ 停止錄音";
+          btn.classList.add("recording");
+          statusDiv.innerHTML = `<span class="pulse-dot">🔴</span> 錄音中...`;
+          resultDiv.innerHTML = "";
+        }})
+        .catch(err => {{
+          console.error("無法取得麥克風權限:", err);
+          alert("無法取得麥克風權限，請確認是否已允許麥克風存取。");
+        }});
+    }}
+
+    function stopRecording() {{
+      if (mediaRecorder && mediaRecorder.state === "recording") {{
+        mediaRecorder.stop();
+      }}
+      isRecording = false;
+      const btn = document.getElementById("mic-" + currentRecordType + "-" + currentRecordIdx);
+      if (btn) {{
+        btn.innerText = currentRecordType === "vocab" ? "🎤 錄音練習" : "🎤 練習";
+        btn.classList.remove("recording");
+      }}
+    }}
+
+    function playRecord(event, url) {{
+      event.stopPropagation();
+      const audio = new Audio(url);
+      audio.play().catch(err => console.error("播音失敗:", err));
+    }}
+
+    function evaluateSpeech(event, type, idx, targetText) {{
+      event.stopPropagation();
+      const statusDiv = document.getElementById("status-" + type + "-" + idx);
+      const resultDiv = document.getElementById("result-" + type + "-" + idx);
+      
+      statusDiv.innerHTML = `⚙️ 正在分析語音中...`;
+      resultDiv.innerHTML = "";
+
+      const audioBlob = new Blob(audioChunks, {{ type: 'audio/webm' }});
+      const formData = new FormData();
+      formData.append("file", audioBlob, "recording.webm");
+      formData.append("target_text", targetText);
+
+      // 呼叫本地 ASR 伺服器
+      fetch("http://127.0.0.1:8000/api/stt", {{
+        method: "POST",
+        body: formData
+      }})
+      .then(res => {{
+        if (!res.ok) {{
+          throw new Error("HTTP error: " + res.status);
+        }}
+        return res.json();
+      }})
+      .then(data => {{
+        const recognizedText = data.text || "";
+        showEvaluationResult(type, idx, targetText, recognizedText, false);
+      }})
+      .catch(err => {{
+        console.warn("無法連接到本地 ASR 伺服器，自動啟動離線模擬評估模式:", err);
+        // 離線模擬評估：延時 1 秒後返回高相符度結果
+        setTimeout(() => {{
+          const simSuccess = Math.random() > 0.15;
+          let recognizedText = targetText;
+          if (!simSuccess && targetText.length > 2) {{
+            recognizedText = targetText.substring(0, targetText.length - 1) + "。";
+          }}
+          showEvaluationResult(type, idx, targetText, recognizedText, true);
+        }}, 1000);
+      }});
+    }}
+
+    function levenshteinDistance(s1, s2) {{
+      const m = s1.length;
+      const n = s2.length;
+      const dp = Array.from({{ length: m + 1 }}, () => Array(n + 1).fill(0));
+      for (let i = 0; i <= m; i++) dp[i][0] = i;
+      for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+      for (let i = 1; i <= m; i++) {{
+        for (let j = 1; j <= n; j++) {{
+          if (s1[i - 1] === s2[j - 1]) {{
+            dp[i][j] = dp[i - 1][j - 1];
+          }} else {{
+            dp[i][j] = Math.min(
+              dp[i - 1][j] + 1,    // deletion
+              dp[i][j - 1] + 1,    // insertion
+              dp[i - 1][j - 1] + 1 // substitution
+            );
+          }}
+        }}
+      }}
+      return dp[m][n];
+    }}
+
+    function computeSimilarity(recognized, target) {{
+      const clean = str => str.replace(/[，。！？、？\\s]/g, "");
+      const r = clean(recognized);
+      const t = clean(target);
+      if (!r || !t) return 0;
+      const dist = levenshteinDistance(r, t);
+      const maxLen = Math.max(r.length, t.length);
+      return Math.round((1 - dist / maxLen) * 100);
+    }}
+
+    function showEvaluationResult(type, idx, targetText, recognizedText, isOfflineSim) {{
+      const statusDiv = document.getElementById("status-" + type + "-" + idx);
+      const resultDiv = document.getElementById("result-" + type + "-" + idx);
+
+      statusDiv.innerHTML = "✅ 分析完成！";
+      
+      // 計算相符得分
+      const score = computeSimilarity(recognizedText, targetText);
+      
+      let feedbackText = "";
+      let scoreClass = "";
+      if (score >= 90) {{
+        feedbackText = "🌟 太棒了！發音非常標準！";
+        scoreClass = "score-excellent";
+      }} else if (score >= 70) {{
+        feedbackText = "👍 很好，發音相當清晰！";
+        scoreClass = "score-good";
+      }} else {{
+        feedbackText = "💡 加油！再多試聽幾次，調整看看聲調。";
+        scoreClass = "score-retry";
+      }}
+
+      let offlineWarning = isOfflineSim ? `
+        <div class="offline-warning">
+          ⚠️ 偵測到本地語音伺服器未開啟，已自動切換為模擬評分模式。
+        </div>
+      ` : "";
+
+      resultDiv.innerHTML = `
+        <div class="eval-card">
+          <div class="eval-score-row">
+            <span class="eval-score $${{scoreClass}}">$${{score}} 分</span>
+            <span class="eval-feedback">$${{feedbackText}}</span>
+          </div>
+          <div class="eval-details">
+            <div><strong>目標句子：</strong> $${{targetText}}</div>
+            <div><strong>辨識結果：</strong> $${{recognizedText || "(無)"}}</div>
+          </div>
+          $${{offlineWarning}}
+        </div>
+      `;
     }}
 
     // 3. 互動測驗確認

@@ -1,0 +1,40 @@
+# 系統與雲端備份暫存
+desktop.ini
+Thumbs.db
+.DS_Store
+*.tmp
+~$*
+
+# 敏感金鑰與環境變數
+.env
+.env.*
+*.key
+credentials.*
+secrets.*
+
+# AI Agent 本地設定檔 (防止 settings.local.json 洩漏 Token)
+.claude/
+.agents/
+.codex/
+
+# 依賴庫
+node_modules/
+package-lock.json
+
+# 大型模型權重 (請離線部署或放至快取，不提交至 Git)
+*.gguf
+*.bin
+*.pt
+*.onnx
+
+# 大型音訊與影像素材 (請上傳至雲端或 YouTube，不提交大型二進位檔)
+*.mp4
+*.wav
+*.mp3
+
+# 輸出與建置快取
+dist/
+build/
+.cache/
+output/
+drafts/

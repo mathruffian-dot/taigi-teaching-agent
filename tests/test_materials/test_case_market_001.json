@@ -1,0 +1,37 @@
+{
+  "title": "去菜市仔買物件",
+  "grade": "國中七年級",
+  "duration_minutes": 45,
+  "vocabulary": [
+    "菜市仔",
+    "買物件",
+    "偌濟錢",
+    "多謝"
+  ],
+  "dialogues": [
+    {
+      "role": "阿偉",
+      "hanji": "阿媽，咱今仔日欲去菜市仔買物件無？",
+      "tailo_numeric": "a1-ma2, lan2 kin1-a2-jit8 beh4 khi3 tshai3-tshi7-a2 be2-mih8-kiann7 bo5?",
+      "zh_tw": "阿嬤，我們今天要去菜市場買東西嗎？"
+    },
+    {
+      "role": "阿媽",
+      "hanji": "有啊，咱欲來去買一些魚仔、肉跟菜，順便買你愛食的麵包。",
+      "tailo_numeric": "u7-a2, lan2 beh4 lai5-khi3 be2 tsit-khua2 hi5-a2, bah kap tshai3, sun7-pien7 be2 li2 ai3 tsiah8 e5 mian7-pao1.",
+      "zh_tw": "有啊，我們要來去買一些魚、肉和菜，順便買你愛吃的麵包。"
+    },
+    {
+      "role": "阿偉",
+      "hanji": "阿媽，這个魚仔一斤偌濟錢？",
+      "tailo_numeric": "a1-ma2, tsit-e5 hi5-a2 tsit-kin1 gua7-tse7-tsinn2?",
+      "zh_tw": "阿嬤，這個魚一斤多少錢？"
+    },
+    {
+      "role": "阿媽",
+      "hanji": "一斤兩百塊，多謝老闆。",
+      "tailo_numeric": "tsit-kin1 nn7-pah-khoo1, to1-sia7 lau7-pan7.",
+      "zh_tw": "一斤兩百元，多謝老闆。"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "ollama": {
+    "url": "http://localhost:11434",
+    "model": "SARC-Taigi-LLM-12b:latest"
+  },
+  "obsidian": {
+    "vault_path": "C:\\Users\\mathr\\OneDrive\\文件\\Secondbrain",
+    "cockpit_relative_path": "專案/2026本土語/專案工作流程.md"
+  },
+  "github": {
+    "owner": "mathruffian-dot",
+    "repo": "taigi-teaching-agent"
+  },
+  "tts": {
+    "provider": "dummy",
+    "api_key": ""
+  }
+}

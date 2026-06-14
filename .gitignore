@@ -11,6 +11,8 @@ Thumbs.db
 *.key
 credentials.*
 secrets.*
+config.json
+
 
 # AI Agent 本地設定檔 (防止 settings.local.json 洩漏 Token)
 .claude/

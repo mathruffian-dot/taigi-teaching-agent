@@ -47,6 +47,45 @@
 
 ---
 
+## 環境初始化與執行指令
+
+- **環境初始化** (其他 Agent 接手)：
+  ```powershell
+  # 允許執行腳本並初始化環境
+  Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+  .\setup.ps1
+  ```
+- **單元測試**：
+  ```powershell
+  # 執行拼音與檢索模組測試
+  .venv\Scripts\pytest tests/
+  ```
+- **執行教材生成**：
+  ```powershell
+  # 執行教材生成主程式 (需提供測試案例路徑)
+  .venv\Scripts\python src/generators/material_generator.py --case <測試案例路徑>
+  ```
+
+---
+
+## 主要檔案結構
+
+- `setup.ps1`：環境初始化與模型在線驗證腳本。
+- `requirements.txt`：Python 套件依賴定義。
+- `config.json` / `config.example.json`：設定檔（設定本機 Ollama、Obsidian 與 GitHub 參數）。
+- `knowledge/`：辭典與 108 課綱資料庫。
+  - `dictionaries/vocabulary_db.json` (常用詞 seed)
+  - `curriculum/syllabus_108.json` (108 課綱 seed)
+- `src/`：核心模組原始碼。
+  - `tailo/validator.py` (臺羅拼音轉換與檢核)
+  - `rag/retriever.py` (檔案型 RAG 檢索器)
+  - `generators/material_generator.py` (教材 Word 與 HTML 生成主程式)
+- `docs/`：日誌與引導手冊。
+  - `testing-playbook.md` (測試 SOP)
+  - `test-logs/` (教材測試日誌存檔區)
+
+---
+
 ## 同步規則
 
 - **開工時**：

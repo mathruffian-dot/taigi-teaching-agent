@@ -1,0 +1,122 @@
+[
+  {
+    "id": "vocab_000001",
+    "type": "vocabulary",
+    "hanji": "食飯",
+    "tailo_diacritic": "tsia̍h-pn̄g",
+    "tailo_numeric": "tsiah8-png7",
+    "zh_tw": "吃飯",
+    "grade": ["國小", "國中", "高中"],
+    "dialect": "臺灣台語",
+    "source": "教育部臺灣台語常用詞辭典",
+    "review_status": "teacher_verified"
+  },
+  {
+    "id": "vocab_000002",
+    "type": "vocabulary",
+    "hanji": "讀冊",
+    "tailo_diacritic": "tha̍k-tsheh",
+    "tailo_numeric": "thak8-tsheh4",
+    "zh_tw": "讀書/上學",
+    "grade": ["國小", "國中"],
+    "dialect": "臺灣台語",
+    "source": "教育部臺灣台語常用詞辭典",
+    "review_status": "teacher_verified"
+  },
+  {
+    "id": "vocab_000003",
+    "type": "vocabulary",
+    "hanji": "搞交椅",
+    "tailo_diacritic": "khó-tsia-í",
+    "tailo_numeric": "kho2-tsia-i2",
+    "zh_tw": "搖椅",
+    "grade": ["國中"],
+    "dialect": "臺灣台語",
+    "source": "教育部臺灣台語常用詞辭典",
+    "review_status": "teacher_verified"
+  },
+  {
+    "id": "vocab_000004",
+    "type": "vocabulary",
+    "hanji": "菜市仔",
+    "tailo_diacritic": "tshài-tshī-á",
+    "tailo_numeric": "tshai3-tshi7-a2",
+    "zh_tw": "菜市場",
+    "grade": ["國小", "國中", "高中"],
+    "dialect": "臺灣台語",
+    "source": "教育部臺灣台語常用詞辭典",
+    "review_status": "teacher_verified"
+  },
+  {
+    "id": "vocab_000005",
+    "type": "vocabulary",
+    "hanji": "買物件",
+    "tailo_diacritic": "bé-mi̍h-kiānn",
+    "tailo_numeric": "be2-mih8-kiann7",
+    "zh_tw": "買東西",
+    "grade": ["國小", "國中"],
+    "dialect": "臺灣台語",
+    "source": "教育部臺灣台語常用詞辭典",
+    "review_status": "teacher_verified"
+  },
+  {
+    "id": "vocab_000006",
+    "type": "vocabulary",
+    "hanji": "偌濟錢",
+    "tailo_diacritic": "guā-tsē-tsînn",
+    "tailo_numeric": "gua7-tse7-tsinn2",
+    "zh_tw": "多少錢",
+    "grade": ["國小", "國中", "高中"],
+    "dialect": "臺灣台語",
+    "source": "教育部臺灣台語常用詞辭典",
+    "review_status": "teacher_verified"
+  },
+  {
+    "id": "vocab_000007",
+    "type": "vocabulary",
+    "hanji": "阿媽",
+    "tailo_diacritic": "a-má",
+    "tailo_numeric": "a1-ma2",
+    "zh_tw": "祖母/外祖母",
+    "grade": ["國小"],
+    "dialect": "臺灣台語",
+    "source": "教育部臺灣台語常用詞辭典",
+    "review_status": "teacher_verified"
+  },
+  {
+    "id": "vocab_000008",
+    "type": "vocabulary",
+    "hanji": "好食",
+    "tailo_diacritic": "hó-tsia̍h",
+    "tailo_numeric": "ho2-tsiah8",
+    "zh_tw": "好吃",
+    "grade": ["國小", "國中"],
+    "dialect": "臺灣台語",
+    "source": "教育部臺灣台語常用詞辭典",
+    "review_status": "teacher_verified"
+  },
+  {
+    "id": "vocab_000009",
+    "type": "vocabulary",
+    "hanji": "多謝",
+    "tailo_diacritic": "to-siā",
+    "tailo_numeric": "to1-sia7",
+    "zh_tw": "謝謝",
+    "grade": ["國小", "國中", "高中"],
+    "dialect": "臺灣台語",
+    "source": "教育部臺灣台語常用詞辭典",
+    "review_status": "teacher_verified"
+  },
+  {
+    "id": "vocab_000010",
+    "type": "vocabulary",
+    "hanji": "臺灣台語",
+    "tailo_diacritic": "Tâi-uân-tâi-gí",
+    "tailo_numeric": "Tai5-uan5-tai5-gi2",
+    "zh_tw": "臺灣閩南語",
+    "grade": ["國小", "國中", "高中"],
+    "dialect": "臺灣台語",
+    "source": "教育部臺灣台語常用詞辭典",
+    "review_status": "teacher_verified"
+  }
+]

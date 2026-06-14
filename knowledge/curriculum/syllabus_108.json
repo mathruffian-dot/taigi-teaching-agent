@@ -1,0 +1,58 @@
+[
+  {
+    "id": "syllabus_001",
+    "code": "1-Ⅳ-1",
+    "type": "performance",
+    "description": "能聽懂常用的臺灣台語生活對話。",
+    "grade_level": "國中七至九年級"
+  },
+  {
+    "id": "syllabus_002",
+    "code": "1-Ⅳ-2",
+    "type": "performance",
+    "description": "能聽懂簡易的廣播、媒體與數位教學內容。",
+    "grade_level": "國中七至九年級"
+  },
+  {
+    "id": "syllabus_003",
+    "code": "2-Ⅳ-1",
+    "type": "performance",
+    "description": "能使用簡單的臺灣台語進行日常溝通。",
+    "grade_level": "國中七至九年級"
+  },
+  {
+    "id": "syllabus_004",
+    "code": "2-Ⅳ-2",
+    "type": "performance",
+    "description": "能以正確的語音、語調有表情地朗讀課文或簡易故事。",
+    "grade_level": "國中七至九年級"
+  },
+  {
+    "id": "syllabus_005",
+    "code": "Aa-Ⅳ-1",
+    "type": "content",
+    "description": "日常生活常用詞彙與生活會話。",
+    "grade_level": "國中七至九年級"
+  },
+  {
+    "id": "syllabus_006",
+    "code": "Aa-Ⅳ-2",
+    "type": "content",
+    "description": "教育部臺灣台語羅馬字拼音方案（臺羅）基本拼讀與調音標記。",
+    "grade_level": "國中七至九年級"
+  },
+  {
+    "id": "syllabus_007",
+    "code": "Ab-Ⅳ-1",
+    "type": "content",
+    "description": "數量詞、時間詞與空間词之應用。",
+    "grade_level": "國中七至九年級"
+  },
+  {
+    "id": "syllabus_008",
+    "code": "Ac-Ⅳ-1",
+    "type": "content",
+    "description": "簡單句、疑問句與否定句之應用。",
+    "grade_level": "國中七至九年級"
+  }
+]

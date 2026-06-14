@@ -14,6 +14,7 @@ sys.path.append(os.path.dirname(os.path.dirname(current_dir)))
 
 from rag.retriever import TaigiRetriever
 from generators.material_generator import MaterialGenerator
+from generators.video_generator import TaigiVideoGenerator
 
 # safe_print 避免 Windows 控制台編碼錯誤
 import builtins
@@ -391,4 +392,16 @@ if __name__ == "__main__":
         print("\n[*] 鏈接教材編譯程序中 (MaterialGenerator)...")
         compiler = MaterialGenerator(args.config)
         compiler.generate_all(out_path)
-        print("[*] 一鍵連鎖教材編譯完成！")
+        
+        print("\n[*] 鏈接教學影片生成器中 (TaigiVideoGenerator)...")
+        lesson_structure_path = "output/lesson_structure.json"
+        video_output_path = "output/lesson_video.mp4"
+        
+        video_gen = TaigiVideoGenerator(args.config)
+        video_success = video_gen.generate_video(lesson_structure_path, video_output_path)
+        if video_success:
+            print(f"[+] 一鍵影片編譯完成！影片路徑: {video_output_path}")
+        else:
+            print("[-] 影片編譯失敗，請檢查日誌。")
+            
+        print("[*] 一鍵連鎖全套教材與教學影片編譯完成！")

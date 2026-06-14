@@ -147,3 +147,53 @@ def test_outline_generator_choose_model():
     generator._get_available_models = lambda: ["gemma4:12b", "qwen2.5-coder:1.5b"]
     assert generator._choose_model() == "gemma4:12b"
 
+def test_free_image_generator(tmp_path, monkeypatch):
+    from generators.image_generator import FreeImageGenerator
+    import requests
+    
+    gen = FreeImageGenerator()
+    # Mock 翻譯為 "apple"
+    gen.translate_to_english_prompt = lambda x: "apple"
+    
+    # 建立 Mock 的 Response 物件
+    class MockResponse:
+        def __init__(self, json_data, status_code):
+            self.json_data = json_data
+            self.status_code = status_code
+            self.content = b"fake image bytes"
+            self.text = json.dumps(json_data)
+            
+        def json(self):
+            return self.json_data
+            
+    # Mock post (提交任務)
+    def mock_post(*args, **kwargs):
+        return MockResponse({"id": "mock-task-123"}, 202)
+        
+    # Mock get (狀態查詢與下載)
+    def mock_get(url, *args, **kwargs):
+        if "check" in url:
+            return MockResponse({"done": True}, 200)
+        elif "status" in url:
+            return MockResponse({
+                "generations": [{"img": "https://example.com/mock.jpg"}]
+            }, 200)
+        else:
+            # 下載圖片
+            return MockResponse({}, 200)
+            
+    monkeypatch.setattr(requests, "post", mock_post)
+    monkeypatch.setattr(requests, "get", mock_get)
+    
+    out_path = tmp_path / "vocab_apple.jpg"
+    success = gen.generate_image("蘋果", str(out_path), width=128, height=128)
+    assert success is True
+    assert out_path.exists()
+    assert out_path.read_bytes() == b"fake image bytes"
+
+def test_video_generator_basic():
+    from generators.video_generator import TaigiVideoGenerator
+    gen = TaigiVideoGenerator()
+    # 測試時長獲取預設值
+    assert gen.get_audio_duration("") == 3.0
+

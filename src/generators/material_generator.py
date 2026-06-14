@@ -11,9 +11,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from rag.retriever import TaigiRetriever
 from tailo.validator import convert_sentence_numeric_to_diacritic
 from tts.generator import TaigiTTS
+from generators.image_generator import FreeImageGenerator
 
 class MaterialGenerator:
     def __init__(self, config_path: str = "config.json"):
+        self.config_path = config_path
         self.config = self._load_config(config_path)
         self.retriever = TaigiRetriever()
         self.tts = TaigiTTS(config_path)
@@ -81,6 +83,29 @@ class MaterialGenerator:
                 self.tts.synthesize_sentence(hanji, wav_path)
                 dia["audio_file"] = f"audio/{wav_filename}"
 
+        # 3.6. 產生詞彙插圖 (免費生圖 API Option B)
+        print("[*] 執行免費 AI 詞彙生圖...")
+        image_dir = os.path.join(output_dir, "images")
+        if not os.path.exists(image_dir):
+            os.makedirs(image_dir)
+            
+        img_gen = FreeImageGenerator(self.config_path)
+        
+        for vocab in enriched_data.get("vocabulary", []):
+            hanji = vocab.get("hanji", "")
+            zh_tw = vocab.get("zh_tw", "")
+            if not zh_tw or zh_tw == "pending":
+                zh_tw = hanji
+                
+            if zh_tw:
+                img_filename = f"vocab_{hanji}.jpg"
+                img_path = os.path.join(image_dir, img_filename)
+                success = img_gen.generate_image(zh_tw, img_path)
+                if success:
+                    vocab["image_file"] = f"images/{img_filename}"
+                else:
+                    vocab["image_file"] = ""
+
         # 保存豐富化後的教材結構資料
         json_output = os.path.join(output_dir, "lesson_structure.json")
         with open(json_output, "w", encoding="utf-8") as f:
@@ -141,12 +166,13 @@ class MaterialGenerator:
             h2 = doc_student.add_paragraph()
             style_run(h2.add_run("二、核心詞彙認讀與手寫練習"), "微軟正黑體", 14, True, RGBColor(11, 60, 48))
             
-            table = doc_student.add_table(rows=1, cols=4)
+            table = doc_student.add_table(rows=1, cols=5)
             hdr_cells = table.rows[0].cells
-            hdr_cells[0].text = '臺語漢字'
-            hdr_cells[1].text = '教育部臺羅拼音'
-            hdr_cells[2].text = '華語翻譯'
-            hdr_cells[3].text = '手寫練習 (漢字與拼音)'
+            hdr_cells[0].text = '圖示'
+            hdr_cells[1].text = '臺語漢字'
+            hdr_cells[2].text = '教育部臺羅拼音'
+            hdr_cells[3].text = '華語翻譯'
+            hdr_cells[4].text = '手寫練習 (漢字與拼音)'
             
             # 設定表頭顏色 (主題墨綠)
             for cell in hdr_cells:
@@ -159,20 +185,39 @@ class MaterialGenerator:
             row_count = 0
             for vocab in data.get("vocabulary", []):
                 row_cells = table.add_row().cells
-                row_cells[0].text = vocab.get("hanji", "")
-                row_cells[1].text = vocab.get("tailo_diacritic", "")
-                row_cells[2].text = vocab.get("zh_tw", "")
-                row_cells[3].text = "__________________"
+                
+                # 1. 置入圖片
+                from docx.shared import Inches
+                img_rel_path = vocab.get("image_file")
+                if img_rel_path:
+                    full_img_path = os.path.join(output_dir, img_rel_path)
+                    if os.path.exists(full_img_path):
+                        p_img = row_cells[0].paragraphs[0]
+                        p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        run_img = p_img.add_run()
+                        try:
+                            run_img.add_picture(full_img_path, width=Inches(0.9))
+                        except Exception as e:
+                            p_img.text = "[圖片損毀]"
+                    else:
+                        row_cells[0].text = "無圖片"
+                else:
+                    row_cells[0].text = "無圖片"
+                    
+                row_cells[1].text = vocab.get("hanji", "")
+                row_cells[2].text = vocab.get("tailo_diacritic", "")
+                row_cells[3].text = vocab.get("zh_tw", "")
+                row_cells[4].text = "__________________"
                 
                 # 斑馬紋底色
                 row_color = "F6F8F6" if row_count % 2 == 1 else "FFFFFF"
                 for i, cell in enumerate(row_cells):
                     set_cell_shading(cell, row_color)
                     p = cell.paragraphs[0]
-                    # 前三欄置中，手寫欄靠左
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER if i < 3 else WD_ALIGN_PARAGRAPH.LEFT
+                    # 前四欄置中，手寫欄靠左
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER if i < 4 else WD_ALIGN_PARAGRAPH.LEFT
                     for r in p.runs:
-                        style_run(r, "新細明體" if i != 1 else "Arial", 10, False, RGBColor(47, 62, 70))
+                        style_run(r, "新細明體" if i != 2 else "Arial", 10, False, RGBColor(47, 62, 70))
                 row_count += 1
                 
             # 3. 情境對話
@@ -257,6 +302,11 @@ class MaterialGenerator:
         # 1. 建立單字卡 HTML (支援 CSS 3D 翻轉)
         vocab_cards_html = ""
         for idx, vocab in enumerate(data.get("vocabulary", [])):
+            img_rel_path = vocab.get("image_file", "")
+            image_html = ""
+            if img_rel_path:
+                image_html = f'<div class="vocab-img-container"><img src="{img_rel_path}" class="vocab-card-img" alt="{vocab.get("hanji")}"></div>'
+                
             vocab_cards_html += f"""
             <div class="card-container" onclick="flipCard({idx})">
               <div class="card-inner" id="card-{idx}">
@@ -266,6 +316,7 @@ class MaterialGenerator:
                     <span class="badge">詞彙 {idx+1}</span>
                     <button class="speaker-btn" onclick="speakText(event, '{vocab.get('hanji')}', '{vocab.get('audio_file', '')}')">🔊</button>
                   </div>
+                  {image_html}
                   <div class="hanji-display">{vocab.get('hanji')}</div>
                   <div class="tailo-display">{vocab.get('tailo_diacritic')}</div>
                   <div class="hint-text">點擊翻面看翻譯</div>
@@ -480,6 +531,21 @@ class MaterialGenerator:
       justify-content: center;
     }}
     
+    .vocab-img-container {{
+      width: 140px;
+      height: 140px;
+      margin: 10px auto;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid var(--accent);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }}
+    .vocab-card-img {{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }}
+
     .card-header {{
       display: flex;
       justify-content: space-between;

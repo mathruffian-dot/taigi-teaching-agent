@@ -33,5 +33,43 @@
       "tailo_numeric": "tsit-kin1 nn7-pah-khoo1, to1-sia7 lau7-pan7.",
       "zh_tw": "一斤兩百元，多謝老闆。"
     }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "question": "「菜市仔」的臺羅拼音是甚麼？",
+      "options": [
+        "tshài-tshī-á (tshai3-tshi7-a2)",
+        "tsiah8-png7 (tsia̍h-pn̄g)",
+        "bé-mi̍h-kiānn (be2-mih8-kiann7)",
+        "to-siā (to1-sia7)"
+      ],
+      "answer_index": 0,
+      "explanation": "「菜市仔」指菜市場，臺羅標音為 tshài-tshī-á (聲調為 3-7-2)。"
+    },
+    {
+      "id": "q2",
+      "question": "對話中阿偉問阿媽魚一斤多少錢，使用了哪一個台語詞彙？",
+      "options": [
+        "讀冊 (tha̍k-tsheh)",
+        "偌濟錢 (guā-tsē-tsînn)",
+        "多謝 (to-siā)",
+        "好食 (hó-tsia̍h)"
+      ],
+      "answer_index": 1,
+      "explanation": "「偌濟錢」在台語中意為「多少錢」，是用來詢問價格的常用詞彙。"
+    },
+    {
+      "id": "q3",
+      "question": "阿媽說「一斤兩百塊」，「兩百塊」的台語數字拼音怎麼寫？",
+      "options": [
+        "tsit-kin1 (一斤)",
+        "nn̄g-pah (兩百)",
+        "tsit-pah (一百)",
+        "saⁿ-pah (三百)"
+      ],
+      "answer_index": 1,
+      "explanation": "「兩百」的台語發音為 nn̄g-pah (數字調為 nng7-pah4)。"
+    }
   ]
 }

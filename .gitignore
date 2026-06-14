@@ -40,3 +40,6 @@ build/
 .cache/
 output/
 drafts/
+__pycache__/
+*.pyc
+

@@ -67,3 +67,24 @@ def test_enrichment():
     # 2. 確保課綱自動被帶出
     assert len(enriched["curriculum"]["learning_performance"]) > 0
     assert any("1-Ⅳ-1" in x for x in enriched["curriculum"]["learning_performance"])
+
+def test_tts_fetch_moedict(tmp_path):
+    from tts.generator import TaigiTTS
+    tts = TaigiTTS()
+    # 測試下載「菜市仔」
+    output_file = tmp_path / "vocab_菜市仔.ogg"
+    success = tts.fetch_vocab_audio("菜市仔", str(output_file))
+    assert success is True
+    assert output_file.exists()
+    assert output_file.stat().st_size > 0
+
+def test_tts_dummy_synthesize(tmp_path):
+    from tts.generator import TaigiTTS
+    tts = TaigiTTS()
+    # 強制設定為 dummy
+    tts.provider = "dummy"
+    output_file = tmp_path / "sentence.wav"
+    success = tts.synthesize_sentence("這是一句測試句子", str(output_file))
+    assert success is True
+    assert output_file.exists()
+    assert output_file.stat().st_size > 0

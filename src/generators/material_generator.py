@@ -10,11 +10,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from rag.retriever import TaigiRetriever
 from tailo.validator import convert_sentence_numeric_to_diacritic
+from tts.generator import TaigiTTS
 
 class MaterialGenerator:
     def __init__(self, config_path: str = "config.json"):
         self.config = self._load_config(config_path)
         self.retriever = TaigiRetriever()
+        self.tts = TaigiTTS(config_path)
 
     def _load_config(self, filepath: str) -> Dict[str, Any]:
         if os.path.exists(filepath):
@@ -45,6 +47,39 @@ class MaterialGenerator:
         for dia in enriched_data.get("dialogues", []):
             if dia.get("tailo_numeric"):
                 dia["tailo_diacritic"] = convert_sentence_numeric_to_diacritic(dia["tailo_numeric"])
+
+        # 3.5. 產生語音音訊檔 (詞彙下載與對話合成)
+        print("[*] 執行語音生成與下載...")
+        audio_dir = os.path.join(output_dir, "audio")
+        if not os.path.exists(audio_dir):
+            os.makedirs(audio_dir)
+            
+        for vocab in enriched_data.get("vocabulary", []):
+            hanji = vocab.get("hanji", "")
+            if hanji:
+                # 預設儲存為 ogg，若失敗則合成 wav 佔位符
+                ogg_filename = f"vocab_{hanji}.ogg"
+                ogg_path = os.path.join(audio_dir, ogg_filename)
+                
+                # 嘗試從萌典下載
+                success = self.tts.fetch_vocab_audio(hanji, ogg_path)
+                if success:
+                    vocab["audio_file"] = f"audio/{ogg_filename}"
+                else:
+                    # 降級：使用 dummy/yating 合成 wav 檔
+                    wav_filename = f"vocab_{hanji}.wav"
+                    wav_path = os.path.join(audio_dir, wav_filename)
+                    self.tts.synthesize_sentence(hanji, wav_path)
+                    vocab["audio_file"] = f"audio/{wav_filename}"
+                    
+        for idx, dia in enumerate(enriched_data.get("dialogues", [])):
+            hanji = dia.get("hanji", "")
+            if hanji:
+                # 對話句子進行語音合成
+                wav_filename = f"dialogue_{idx}.wav"
+                wav_path = os.path.join(audio_dir, wav_filename)
+                self.tts.synthesize_sentence(hanji, wav_path)
+                dia["audio_file"] = f"audio/{wav_filename}"
 
         # 保存豐富化後的教材結構資料
         json_output = os.path.join(output_dir, "lesson_structure.json")
@@ -229,7 +264,7 @@ class MaterialGenerator:
                 <div class="card-front">
                   <div class="card-header">
                     <span class="badge">詞彙 {idx+1}</span>
-                    <button class="speaker-btn" onclick="speakText(event, '{vocab.get('hanji')}')">🔊</button>
+                    <button class="speaker-btn" onclick="speakText(event, '{vocab.get('hanji')}', '{vocab.get('audio_file', '')}')">🔊</button>
                   </div>
                   <div class="hanji-display">{vocab.get('hanji')}</div>
                   <div class="tailo-display">{vocab.get('tailo_diacritic')}</div>
@@ -253,7 +288,13 @@ class MaterialGenerator:
               <div class="speaker-avatar">{dia.get('role')[0]}</div>
               <div class="dialogue-bubble" onclick="toggleTranslation({idx})">
                 <div class="speaker-name">{dia.get('role')}</div>
-                <div class="dialogue-sentence">{dia.get('hanji')}</div>
+                <div class="dialogue-sentence">
+                  {dia.get('hanji')}
+                  <span class="bubble-audio-btns">
+                    <button class="bubble-audio-btn" onclick="playDialogue(event, '{dia.get('audio_file', '')}', 1.0)">▶️ 正常</button>
+                    <button class="bubble-audio-btn slow" onclick="playDialogue(event, '{dia.get('audio_file', '')}', 0.75)">🐌 慢速</button>
+                  </span>
+                </div>
                 <div class="dialogue-tailo">{dia.get('tailo_diacritic')}</div>
                 <div class="dialogue-zh" id="diag-zh-{idx}">{dia.get('zh_tw')}</div>
                 <div class="dialogue-hint">點擊切換中文翻譯</div>
@@ -739,6 +780,38 @@ class MaterialGenerator:
       color: var(--accent);
       margin: 8px 0;
     }}
+
+    /* 對話泡泡音訊播放按鈕樣式 */
+    .bubble-audio-btns {{
+      margin-left: 15px;
+      display: inline-flex;
+      gap: 5px;
+      vertical-align: middle;
+    }}
+    
+    .bubble-audio-btn {{
+      background-color: var(--primary);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }}
+    
+    .bubble-audio-btn:hover {{
+      background-color: var(--accent);
+    }}
+    
+    .bubble-audio-btn.slow {{
+      background-color: var(--accent);
+    }}
+    
+    .bubble-audio-btn.slow:hover {{
+      background-color: var(--primary);
+    }}
   </style>
 </head>
 <body>
@@ -823,18 +896,46 @@ class MaterialGenerator:
       }}
     }}
     
-    // 語音播放占位
-    function speakText(event, text) {{
+    // 語音播放占位 (詞彙字卡)
+    function speakText(event, text, audioUrl) {{
       event.stopPropagation(); // 防止翻轉卡片
+      if (audioUrl) {{
+        const audio = new Audio(audioUrl);
+        audio.play().catch(err => {{
+          console.log("播放本地音訊失敗，切換至語音合成降級模式:", err);
+          fallbackSpeak(text);
+        }});
+      }} else {{
+        fallbackSpeak(text);
+      }}
+    }}
+    
+    function fallbackSpeak(text) {{
       if ('speechSynthesis' in window) {{
-        // 嘗試調用本地瀏覽器台語 TTS 朗讀，若無則警告
         const utterance = new SpeechSynthesisUtterance(text);
-        // 設定偏好台語/閩南語語音
-        utterance.lang = 'zh-HK'; // 部份系統暫用粵語或華語替代，專案後續將整合 RAG TTS 音訊
+        utterance.lang = 'zh-HK'; // 部份系統暫用粵語或華語替代
         window.speechSynthesis.speak(utterance);
       }} else {{
         alert("瀏覽器不支援 Speech Synthesis。");
       }}
+    }}
+
+    // 對話泡泡語音播放 (支援正常/慢速)
+    let currentAudio = null;
+    function playDialogue(event, audioUrl, rate) {{
+      event.stopPropagation(); // 防止切換中文翻譯
+      if (currentAudio) {{
+        currentAudio.pause();
+      }}
+      if (!audioUrl) {{
+        alert("此對話無對應語音檔。");
+        return;
+      }}
+      currentAudio = new Audio(audioUrl);
+      currentAudio.playbackRate = rate;
+      currentAudio.play().catch(err => {{
+        console.error("對話語音播放失敗:", err);
+      }});
     }}
 
     // 2. 對話中文切換

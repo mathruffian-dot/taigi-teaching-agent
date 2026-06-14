@@ -101,9 +101,13 @@ def test_stt_dummy(tmp_path):
     recognized = stt.speech_to_text(str(audio_file), target_text="買物件")
     assert recognized == "買物件"
 
-def test_api_stt_endpoint(tmp_path):
+def test_api_stt_endpoint(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
     from server import app
+    from stt.generator import TaigiSTT
+    
+    # Mock stt.speech_to_text 避免 real ASR 在 API 測試中干擾
+    monkeypatch.setattr(TaigiSTT, "speech_to_text", lambda self, p, t="": t)
     
     client = TestClient(app)
     
@@ -196,4 +200,21 @@ def test_video_generator_basic():
     gen = TaigiVideoGenerator()
     # 測試時長獲取預設值
     assert gen.get_audio_duration("") == 3.0
+
+def test_stt_local_whisper_integration(tmp_path):
+    from stt.generator import TaigiSTT
+    stt = TaigiSTT()
+    # 強制設定為 whisper 模式以執行實體推理
+    stt.provider = "whisper"
+    stt.stt_config["local_model_size"] = "tiny"
+    
+    # 藉由 TaigiTTS 下載一個合法的台語語音檔 (例如「食飯」)
+    from tts.generator import TaigiTTS
+    tts = TaigiTTS()
+    audio_file = tmp_path / "vocab_食飯.ogg"
+    fetch_success = tts.fetch_vocab_audio("食飯", str(audio_file))
+    
+    if fetch_success:
+        recognized = stt.speech_to_text(str(audio_file))
+        assert len(recognized) > 0
 

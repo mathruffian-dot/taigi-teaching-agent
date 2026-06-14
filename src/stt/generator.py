@@ -94,14 +94,33 @@ class TaigiSTT:
 
     def _stt_local_whisper(self, audio_path: str, target_text: str = "") -> str:
         """
-        本地使用 faster-whisper 引擎進行辨識 (若已安裝相依套件)
+        本地使用 faster-whisper 引擎進行辨識 (若已安裝相依套件)。
+        會自動透過 ffmpeg 轉換音訊為 16kHz mono WAV，以保證解碼相容性。
         """
+        converted_path = None
         try:
             print(f"[*] 嘗試在本地使用 faster-whisper 辨識音訊: {audio_path}...")
+            
+            # 使用 ffmpeg 轉換為 16kHz mono WAV (Whisper 最佳格式)
+            import subprocess
+            import tempfile
+            
+            # 建立臨時 wav 檔案
+            temp_dir = tempfile.gettempdir()
+            converted_path = os.path.join(temp_dir, f"whisper_input_{os.urandom(8).hex()}.wav")
+            
+            # 轉換
+            cmd = ["ffmpeg", "-y", "-i", audio_path, "-ar", "16000", "-ac", "1", converted_path]
+            res_conv = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            # 若轉換成功，使用轉換後的檔案，否則使用原檔案
+            input_to_whisper = converted_path if (res_conv.returncode == 0 and os.path.exists(converted_path)) else audio_path
+            
             from faster_whisper import WhisperModel
-            model_size = self.stt_config.get("local_model_size", "base")
+            model_size = self.stt_config.get("local_model_size", "tiny") # 預設改用 tiny 提升本地 CPU 運算速度
             model = WhisperModel(model_size, device="cpu", compute_type="int8")
-            segments, info = model.transcribe(audio_path, beam_size=5, language="zh")
+            
+            segments, info = model.transcribe(input_to_whisper, beam_size=5, language="zh")
             text = "".join([segment.text for segment in segments]).strip()
             print(f"  [+] 本地 ASR 辨識成功: 「{text}」")
             return text
@@ -111,6 +130,13 @@ class TaigiSTT:
         except Exception as e:
             print(f"  [-] 本地 ASR 辨識異常: {str(e)}")
             return ""
+        finally:
+            # 清理臨時 wav 檔案
+            if converted_path and os.path.exists(converted_path):
+                try:
+                    os.remove(converted_path)
+                except:
+                    pass
 
     def _stt_dummy(self, audio_path: str, target_text: str = "") -> str:
         """

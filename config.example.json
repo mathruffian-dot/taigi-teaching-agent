@@ -14,5 +14,9 @@
   "tts": {
     "provider": "dummy",
     "api_key": ""
+  },
+  "stt": {
+    "provider": "whisper",
+    "local_model_size": "tiny"
   }
 }

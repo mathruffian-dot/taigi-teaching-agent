@@ -120,3 +120,30 @@ def test_api_stt_endpoint(tmp_path):
         
     assert response.status_code == 200
     assert response.json() == {"text": "多謝"}
+
+def test_outline_generator_mock():
+    from agent.outline_generator import TaigiOutlineGenerator
+    generator = TaigiOutlineGenerator()
+    # 關閉 Ollama 模擬離線
+    generator._get_available_models = lambda: []
+    
+    outline = generator.generate_outline("去菜市仔買物件", "國中七年級")
+    assert outline["title"] == "情境會話：去菜市仔買物件"
+    assert outline["grade"] == "國中七年級"
+    assert "菜市仔" in outline["vocabulary"]
+    assert len(outline["dialogues"]) > 0
+    assert len(outline["questions"]) == 3
+
+def test_outline_generator_choose_model():
+    from agent.outline_generator import TaigiOutlineGenerator
+    generator = TaigiOutlineGenerator()
+    
+    # 1. 測試預設模型存在時，選擇預設模型
+    generator.configured_model = "SARC-Taigi-LLM-12b:latest"
+    generator._get_available_models = lambda: ["SARC-Taigi-LLM-12b:latest", "gemma4:12b"]
+    assert generator._choose_model() == "SARC-Taigi-LLM-12b:latest"
+    
+    # 2. 測試預設模型不存在時，自動選擇本地替代大模型 (例如 gemma4)
+    generator._get_available_models = lambda: ["gemma4:12b", "qwen2.5-coder:1.5b"]
+    assert generator._choose_model() == "gemma4:12b"
+

@@ -16,25 +16,7 @@ from rag.retriever import TaigiRetriever
 from generators.material_generator import MaterialGenerator
 from generators.video_generator import TaigiVideoGenerator
 
-# safe_print 避免 Windows 控制台編碼錯誤
-import builtins
-
-def safe_print(*args, **kwargs):
-    try:
-        builtins.print(*args, **kwargs)
-    except UnicodeEncodeError:
-        try:
-            encoding = sys.stdout.encoding or "utf-8"
-            new_args = []
-            for arg in args:
-                if isinstance(arg, str):
-                    new_args.append(arg.encode(encoding, errors="replace").decode(encoding))
-                else:
-                    new_args.append(arg)
-            builtins.print(*new_args, **kwargs)
-        except Exception:
-            pass
-
+from utils import safe_print
 print = safe_print
 
 class TaigiOutlineGenerator:
@@ -108,8 +90,8 @@ class TaigiOutlineGenerator:
         
         # 1. 透過 RAG 檢索常用詞庫 (做為 reference 提供給大模型)
         vocab_matches = self.retriever.retrieve_vocabulary(prompt)
-        # 限制取前 10 個核心詞，避免 prompt 過長
-        vocab_ref = [v.get("hanji") for v in vocab_matches[:10]]
+        # 附上台羅拼音供 LLM 參考格式
+        vocab_ref = [f"{v.get('hanji')} ({v.get('tailo_numeric')})" for v in vocab_matches[:8]]
         
         # 2. 透過 RAG 檢索對應年級的課綱績效
         syllabus_matches = self.retriever.retrieve_syllabus_by_grade(grade)
@@ -119,7 +101,7 @@ class TaigiOutlineGenerator:
         try:
             model = self._choose_model()
             # 呼叫 Ollama 生成
-            return self._generate_via_ollama(
+            result = self._generate_via_ollama(
                 model=model,
                 prompt=prompt,
                 grade=grade,
@@ -127,6 +109,11 @@ class TaigiOutlineGenerator:
                 vocab_ref=vocab_ref,
                 syllabus_ref=syllabus_ref
             )
+            # 驗證生成的拼音品質，不合格則降級
+            if self._validate_outline(result):
+                return result
+            else:
+                return self._generate_via_mock(prompt, grade, duration_minutes)
         except (ConnectionError, requests.exceptions.RequestException) as e:
             # 智慧降級：Ollama 未啟動或失敗，執行 Mock 模擬生成
             return self._generate_via_mock(prompt, grade, duration_minutes)
@@ -141,46 +128,57 @@ class TaigiOutlineGenerator:
         print(f"[*] 正在調用本地 Ollama 模型 「{model}」 生成 JSON 大綱...")
         url = f"{self.ollama_url}/api/chat"
         
-        # 參考詞彙與課綱上下文
+        #         參考詞彙與課綱上下文
         ref_text = ""
         if vocab_ref:
             ref_text += f"參考詞彙庫已收錄台語詞: {', '.join(vocab_ref)}\n"
         if syllabus_ref:
             ref_text += f"參考108課綱指標:\n" + "\n".join(syllabus_ref) + "\n"
 
-        system_instruction = f"""您是一位資深的臺灣台語教學設計專家。您的目標是依據教師的主題和年級，設計一份教學結構 JSON。
-您必須輸出合法的 JSON 物件，不包含任何額外的 Markdown 代碼塊或對話文字。
+        system_instruction = f"""你是一位專業的臺灣台語教師，為 {grade} 學生設計一份台語教材大綱 JSON。
 
-教學大綱 JSON 的 Schema 規範如下：
+輸出必須是合法 JSON，不含 Markdown 標記或對話文字。
+
+JSON Schema：
 {{
   "title": "單元標題",
-  "grade": "適用年級",
-  "duration_minutes": 45,
-  "vocabulary": ["詞彙1", "詞彙2", "詞彙3"],
+  "grade": "{grade}",
+  "duration_minutes": {duration},
+  "vocabulary": ["台語漢字詞1", "台語漢字詞2", "台語漢字詞3"],
   "dialogues": [
     {{
-      "role": "說話者名字(例如: 阿偉)",
-      "hanji": "台語漢字句子",
-      "tailo_numeric": "台羅拼音數字調 (例如: a1-ma2, lan2 beh4...)",
-      "zh_tw": "對應的華語翻譯"
+      "role": "角色名（如：阿偉）",
+      "hanji": "台語漢字對話句",
+      "tailo_numeric": "台羅數字調拼音",
+      "zh_tw": "華語翻譯"
     }}
   ],
   "questions": [
     {{
       "id": "q1",
-      "question": "選擇題題目",
+      "question": "題目",
       "options": ["選項1", "選項2", "選項3", "選項4"],
-      "answer_index": 正確選項的索引 (數字 0 到 3),
-      "explanation": "對答案的解析說明"
+      "answer_index": 0,
+      "explanation": "解析"
     }}
   ]
 }}
 
-重要規範：
-1. `vocabulary` 清單內請提供 3-5 個與主題相關的台語漢字生詞。
-2. `dialogues` 請提供 3-4 句流暢的情境對話。
-3. `questions` 請提供 3 題單選題。
-4. 所有的台羅拼音請採用數值調格式（如: png7, tsiah8, nn7-pah-khoo1）。
+⚠️ 台羅數字調拼音規範（嚴格遵守）：
+- 聲調只能用 1,2,3,4,5,7,8（沒有 6,9,0）
+- 音節格式：聲母+韻母+數字聲調，例：tsiah8, png7, a1, be2, tshai3, lai5
+- 多音節用 - 連接：tsiah8-png7, a1-ma2, tshai3-tshi7-a2
+- 聲母清單：p, ph, m, b, t, th, n, l, k, kh, ng, g, h, ts, tsh, s, j
+- 韻母例：a, e, i, o, oo, u, ai, au, ia, iu, ua, ue, ui, iau, uai, am, an, ang, eng, ian, iang, iong, im, in, ing, om, ong, un, uan
+- ❌ 嚴禁使用普通話拼音（qiao, lun, ni, san, yu 等）
+- ❌ 嚴禁使用簡體字或中國用語
+- ❌ 嚴禁所有選項內容完全相同
+
+規範：
+1. vocabulary 提供 3-5 個教育部推薦台語漢字詞
+2. dialogues 提供 3-4 句自然台語情境對話
+3. questions 提供 3 題，每題 4 個不同選項
+4. grade 必須是繁體中文（如「國中七年級」非「七年级」）
 
 {ref_text}
 """
@@ -226,6 +224,76 @@ class TaigiOutlineGenerator:
         except Exception as e:
             print(f"  [-] JSON 解析失敗: {str(e)}。回傳內容: {text[:100]}...")
             raise e
+
+    def _validate_outline(self, data: Dict[str, Any]) -> bool:
+        """
+        驗證 Ollama 生成的大綱品質。檢查台羅拼音格式、選項數量、年級格式等。
+        回傳 True 表示通過，False 表示品質不合格應降級為 Mock。
+        """
+        import re
+        
+        issues = []
+        
+        # 1. 檢查 grade 是否繁體中文格式（不能是簡體 "七年级"）
+        grade = data.get("grade", "")
+        if "七" in grade and "级" in grade:
+            issues.append("年級使用簡體中文")
+        
+        # 2. 檢查詞彙是否為台語漢字（至少要有漢字）
+        vocab = data.get("vocabulary", [])
+        if len(vocab) < 2:
+            issues.append("詞彙少於 2 個")
+        
+        # 3. 檢查對話的台羅拼音品質
+        dialogues = data.get("dialogues", [])
+        invalid_tailo_count = 0
+        tailo_syllable_pattern = re.compile(
+            r'^[ptkbmnlghjzcs][a-z]*[1-8]$|^[aouei][a-z]*[1-8]$|^[mng]+[1-8]$'
+        )
+        mandarin_pinyin_pattern = re.compile(r'[qvx]')
+        
+        for dia in dialogues:
+            tn = dia.get("tailo_numeric", "")
+            # 檢查是否含有普通話拼音特徵
+            if mandarin_pinyin_pattern.search(tn.lower()):
+                invalid_tailo_count += 1
+                continue
+            # 檢查是否含有非法聲調 (6, 9, 0)
+            if re.search(r'[69]($|[^0-9])|[a-z]0', tn):
+                invalid_tailo_count += 1
+                continue
+            # 分離音節並驗證格式
+            cleaned = re.sub(r'[，。！？、；：\?\.,!]', ' ', tn)
+            syllables = re.split(r'[\s\-]+', cleaned)
+            valid_syllables = 0
+            for s in syllables:
+                s = s.strip()
+                if not s:
+                    continue
+                if tailo_syllable_pattern.match(s):
+                    valid_syllables += 1
+            if valid_syllables == 0 and len(syllables) > 0:
+                invalid_tailo_count += 1
+        
+        if invalid_tailo_count > 0:
+            issues.append(f"對話中有 {invalid_tailo_count} 句的台羅拼音格式不合規")
+        
+        # 4. 檢查題目選項是否重複
+        questions = data.get("questions", [])
+        for q in questions:
+            options = q.get("options", [])
+            if len(options) < 4:
+                issues.append(f"題目 {q.get('id')} 只有 {len(options)} 個選項（需要 4 個）")
+            if len(set(options)) != len(options):
+                issues.append(f"題目 {q.get('id')} 有重複選項")
+        
+        if issues:
+            print(f"  [!] 大綱品質驗證失敗：{'；'.join(issues)}")
+            print(f"  [!] 自動降級為 Mock 離線模式。")
+            return False
+        
+        print(f"  [+] 大綱品質驗證通過。")
+        return True
 
     def _generate_via_mock(self, prompt: str, grade: str, duration: int) -> Dict[str, Any]:
         """
@@ -356,6 +424,18 @@ class TaigiOutlineGenerator:
                         ],
                         "answer_index": 0,
                         "explanation": "「肚子餓」台語說「腹肚枵 (pak-tōo iau)」，「真枵」即很餓。"
+                    },
+                    {
+                        "id": "q3",
+                        "question": "「讀冊」的華語意思是什麼？",
+                        "options": [
+                            "吃飯",
+                            "讀書/上學",
+                            "謝謝",
+                            "老師"
+                        ],
+                        "answer_index": 1,
+                        "explanation": "「讀冊」在台語中意為「讀書」或「上學」，是學校生活中常用的詞彙。"
                     }
                 ]
             }

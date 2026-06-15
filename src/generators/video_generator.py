@@ -8,25 +8,9 @@ import subprocess
 from pathlib import Path
 from typing import Dict, Any, List
 
-# 解決 Windows UTF-8 輸出問題
-import builtins
-
-def safe_print(*args, **kwargs):
-    try:
-        builtins.print(*args, **kwargs)
-    except UnicodeEncodeError:
-        try:
-            encoding = sys.stdout.encoding or "utf-8"
-            new_args = []
-            for arg in args:
-                if isinstance(arg, str):
-                    new_args.append(arg.encode(encoding, errors="replace").decode(encoding))
-                else:
-                    new_args.append(arg)
-            builtins.print(*new_args, **kwargs)
-        except Exception:
-            pass
-
+# 安全輸出至 Windows 控制台
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import safe_print
 print = safe_print
 
 class TaigiVideoGenerator:

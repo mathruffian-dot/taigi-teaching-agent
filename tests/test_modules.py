@@ -151,6 +151,64 @@ def test_outline_generator_choose_model():
     generator._get_available_models = lambda: ["gemma4:12b", "qwen2.5-coder:1.5b"]
     assert generator._choose_model() == "gemma4:12b"
 
+def test_outline_generator_mock_default():
+    from agent.outline_generator import TaigiOutlineGenerator
+    generator = TaigiOutlineGenerator()
+    generator._get_available_models = lambda: []
+    
+    outline = generator.generate_outline("在茶莊品茶", "國中七年級")
+    assert outline["title"] == "情境會話：在茶莊品茶"
+    assert outline["grade"] == "國中七年級"
+    assert len(outline["vocabulary"]) == 3
+    assert "食飯" in outline["vocabulary"]
+    assert len(outline["dialogues"]) == 3
+    assert len(outline["questions"]) == 3  # 驗證已補上第 3 題
+    assert outline["questions"][2]["id"] == "q3"
+
+def test_outline_generator_compile_flag(monkeypatch, tmp_path):
+    from agent.outline_generator import TaigiOutlineGenerator
+    generator = TaigiOutlineGenerator()
+    generator._get_available_models = lambda: []
+    
+    outline = generator.generate_outline("去菜市仔買物件", "國中七年級")
+    assert outline["vocabulary"][0] == "菜市仔"
+    assert len(outline["dialogues"]) == 4
+
+def test_image_generator_config_url():
+    from generators.image_generator import FreeImageGenerator
+    import json, tempfile, os
+    
+    config = {"ollama": {"url": "http://localhost:9999", "model": "test-model"}}
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+    json.dump(config, tmp)
+    tmp.close()
+    
+    try:
+        gen = FreeImageGenerator(tmp.name)
+        assert gen.ollama_url == "http://localhost:9999"
+    finally:
+        os.unlink(tmp.name)
+
+def test_sentence_conversion_mixed():
+    from tailo.validator import convert_sentence_numeric_to_diacritic
+    result = convert_sentence_numeric_to_diacritic("tsiah8-png7 to1-sia7")
+    assert "tsia̍h-pn̄g" in result
+    assert "to-siā" in result
+
+def test_tailo_iou_ui_rules():
+    from tailo.validator import tailo_numeric_to_diacritic
+    assert tailo_numeric_to_diacritic("iu5") == "iû"
+    assert tailo_numeric_to_diacritic("ui7") == "uī"
+    assert tailo_numeric_to_diacritic("gue5") == "guê"
+    assert tailo_numeric_to_diacritic("ng5") == "n̂g"
+    assert tailo_numeric_to_diacritic("m7") == "m̄"
+
+def test_retriever_no_results():
+    from rag.retriever import TaigiRetriever
+    retriever = TaigiRetriever()
+    results = retriever.retrieve_vocabulary("不存在的詞彙xyz")
+    assert len(results) == 0
+
 def test_free_image_generator(tmp_path, monkeypatch):
     from generators.image_generator import FreeImageGenerator
     import requests
@@ -217,4 +275,141 @@ def test_stt_local_whisper_integration(tmp_path):
     if fetch_success:
         recognized = stt.speech_to_text(str(audio_file))
         assert len(recognized) > 0
+
+def test_outline_validator_rejects_bad_romanization():
+    from agent.outline_generator import TaigiOutlineGenerator
+    gen = TaigiOutlineGenerator()
+    
+    bad_data = {
+        "title": "測試",
+        "grade": "國中七年級",
+        "duration_minutes": 45,
+        "vocabulary": ["食飯", "買物件"],
+        "dialogues": [
+            {
+                "role": "阿偉",
+                "hanji": "你好",
+                "tailo_numeric": "qiao2-lun4-ni3-san4",
+                "zh_tw": "你好"
+            }
+        ],
+        "questions": [
+            {
+                "id": "q1",
+                "question": "測試",
+                "options": ["A", "B", "C", "D"],
+                "answer_index": 0,
+                "explanation": "測試"
+            }
+        ]
+    }
+    assert gen._validate_outline(bad_data) is False
+
+def test_outline_validator_rejects_grade_simplified():
+    from agent.outline_generator import TaigiOutlineGenerator
+    gen = TaigiOutlineGenerator()
+    
+    data = {
+        "title": "測試",
+        "grade": "七年级",
+        "duration_minutes": 45,
+        "vocabulary": ["食飯", "買物件"],
+        "dialogues": [
+            {
+                "role": "阿偉",
+                "hanji": "咱來去食飯",
+                "tailo_numeric": "lan2 lai5-khi3 tsiah8-png7",
+                "zh_tw": "我們來去吃飯"
+            }
+        ],
+        "questions": [
+            {
+                "id": "q1",
+                "question": "測試",
+                "options": ["A", "B", "C", "D"],
+                "answer_index": 0,
+                "explanation": "測試"
+            }
+        ]
+    }
+    assert gen._validate_outline(data) is False
+
+def test_outline_validator_rejects_duplicate_options():
+    from agent.outline_generator import TaigiOutlineGenerator
+    gen = TaigiOutlineGenerator()
+    
+    data = {
+        "title": "測試",
+        "grade": "國中七年級",
+        "duration_minutes": 45,
+        "vocabulary": ["食飯", "買物件"],
+        "dialogues": [
+            {
+                "role": "阿偉",
+                "hanji": "咱來去食飯",
+                "tailo_numeric": "lan2 lai5-khi3 tsiah8-png7",
+                "zh_tw": "我們來去吃飯"
+            }
+        ],
+        "questions": [
+            {
+                "id": "q1",
+                "question": "測試",
+                "options": ["相同", "相同", "相同", "相同"],
+                "answer_index": 0,
+                "explanation": "測試"
+            }
+        ]
+    }
+    assert gen._validate_outline(data) is False
+
+def test_outline_validator_accepts_good_data():
+    from agent.outline_generator import TaigiOutlineGenerator
+    gen = TaigiOutlineGenerator()
+    
+    good_data = {
+        "title": "情境會話：去菜市仔買物件",
+        "grade": "國中七年級",
+        "duration_minutes": 45,
+        "vocabulary": ["菜市仔", "買物件", "偌濟錢"],
+        "dialogues": [
+            {
+                "role": "阿偉",
+                "hanji": "阿媽，咱今仔日欲去菜市仔買物件無？",
+                "tailo_numeric": "a1-ma2 lan2 kin1-a2-jit8 beh4 khi3 tshai3-tshi7-a2 be2-mih8-kiann7 bo5",
+                "zh_tw": "阿嬤，我們今天要去菜市場買東西嗎？"
+            }
+        ],
+        "questions": [
+            {
+                "id": "q1",
+                "question": "測試題目",
+                "options": ["選項A", "選項B", "選項C", "選項D"],
+                "answer_index": 0,
+                "explanation": "解析說明"
+            }
+        ]
+    }
+    assert gen._validate_outline(good_data) is True
+
+def test_vocabulary_db_expanded():
+    from rag.retriever import TaigiRetriever
+    retriever = TaigiRetriever()
+    
+    assert len(retriever.vocabulary_db) >= 30
+    
+    categories = {
+        "食物": ["咖啡", "茶", "牛奶", "果子", "麵包"],
+        "家人": ["阿公", "阿爸", "阿母", "小妹"],
+        "學校": ["學校", "先生", "考試", "寫字"],
+        "時間": ["今仔日", "明仔載", "昨昏"],
+        "生活": ["你好", "再會", "電腦", "手機", "電影", "火車", "醫生", "公園"]
+    }
+    
+    for cat, words in categories.items():
+        for w in words:
+            results = retriever.retrieve_vocabulary(w)
+            assert len(results) > 0, f"找不到 {cat} 類詞彙: {w}"
+            assert results[0]["hanji"] == w
+            assert "pending" not in results[0].get("tailo_numeric", "")
 

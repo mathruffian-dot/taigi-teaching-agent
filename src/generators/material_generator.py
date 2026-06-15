@@ -124,178 +124,179 @@ class MaterialGenerator:
     def _generate_docx(self, data: Dict[str, Any], output_dir: str):
         try:
             from docx import Document
-            from docx.shared import Pt, RGBColor
-            from docx.enum.text import WD_ALIGN_PARAGRAPH
-            from docx.oxml import parse_xml
-            from docx.oxml.ns import nsdecls
-            
-            def set_cell_shading(cell, color_hex):
-                shading_xml = f'<w:shd {nsdecls("w")} w:fill="{color_hex}"/>'
-                cell._tc.get_or_add_tcPr().append(parse_xml(shading_xml))
-                
-            def style_run(run, font_name="Arial", size_pt=11, bold=False, color_rgb=None):
-                run.font.name = font_name
-                run.font.size = Pt(size_pt)
-                run.bold = bold
-                if color_rgb:
-                    run.font.color.rgb = color_rgb
-
-            # ==================== 學生版講義 ====================
-            doc_student = Document()
-            title_p = doc_student.add_paragraph()
-            title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = title_p.add_run(f"臺語學習講義：{data.get('title')}")
-            style_run(run, "微軟正黑體", 18, True, RGBColor(11, 60, 48))
-            
-            meta_p = doc_student.add_paragraph()
-            meta_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = meta_p.add_run(f"適用年級：{data.get('grade')} | 課程時間：{data.get('duration_minutes')} 分鐘 | 姓名：___________ 座號：_____")
-            style_run(run, "微軟正黑體", 10, False, RGBColor(82, 100, 95))
-            
-            # 1. 課綱指標
-            h1 = doc_student.add_paragraph()
-            style_run(h1.add_run("一、學習目標與課綱指標對照"), "微軟正黑體", 14, True, RGBColor(11, 60, 48))
-            for perf in data.get("curriculum", {}).get("learning_performance", []):
-                p = doc_student.add_paragraph()
-                style_run(p.add_run(f"• 學習表現：{perf}"), "新細明體", 10, False)
-            for cont in data.get("curriculum", {}).get("learning_content", []):
-                p = doc_student.add_paragraph()
-                style_run(p.add_run(f"• 學習內容：{cont}"), "新細明體", 10, False)
-                
-            # 2. 詞彙表 (美化斑馬紋表格)
-            h2 = doc_student.add_paragraph()
-            style_run(h2.add_run("二、核心詞彙認讀與手寫練習"), "微軟正黑體", 14, True, RGBColor(11, 60, 48))
-            
-            table = doc_student.add_table(rows=1, cols=5)
-            hdr_cells = table.rows[0].cells
-            hdr_cells[0].text = '圖示'
-            hdr_cells[1].text = '臺語漢字'
-            hdr_cells[2].text = '教育部臺羅拼音'
-            hdr_cells[3].text = '華語翻譯'
-            hdr_cells[4].text = '手寫練習 (漢字與拼音)'
-            
-            # 設定表頭顏色 (主題墨綠)
-            for cell in hdr_cells:
-                set_cell_shading(cell, "0B3C30")
-                for p in cell.paragraphs:
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    for r in p.runs:
-                        style_run(r, "微軟正黑體", 10, True, RGBColor(255, 255, 255))
-            
-            row_count = 0
-            for vocab in data.get("vocabulary", []):
-                row_cells = table.add_row().cells
-                
-                # 1. 置入圖片
-                from docx.shared import Inches
-                img_rel_path = vocab.get("image_file")
-                if img_rel_path:
-                    full_img_path = os.path.join(output_dir, img_rel_path)
-                    if os.path.exists(full_img_path):
-                        p_img = row_cells[0].paragraphs[0]
-                        p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        run_img = p_img.add_run()
-                        try:
-                            run_img.add_picture(full_img_path, width=Inches(0.9))
-                        except Exception as e:
-                            p_img.text = "[圖片損毀]"
-                    else:
-                        row_cells[0].text = "無圖片"
-                else:
-                    row_cells[0].text = "無圖片"
-                    
-                row_cells[1].text = vocab.get("hanji", "")
-                row_cells[2].text = vocab.get("tailo_diacritic", "")
-                row_cells[3].text = vocab.get("zh_tw", "")
-                row_cells[4].text = "__________________"
-                
-                # 斑馬紋底色
-                row_color = "F6F8F6" if row_count % 2 == 1 else "FFFFFF"
-                for i, cell in enumerate(row_cells):
-                    set_cell_shading(cell, row_color)
-                    p = cell.paragraphs[0]
-                    # 前四欄置中，手寫欄靠左
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER if i < 4 else WD_ALIGN_PARAGRAPH.LEFT
-                    for r in p.runs:
-                        style_run(r, "新細明體" if i != 2 else "Arial", 10, False, RGBColor(47, 62, 70))
-                row_count += 1
-                
-            # 3. 情境對話
-            doc_student.add_paragraph() # 空行
-            h3 = doc_student.add_paragraph()
-            style_run(h3.add_run("三、情境會話認讀 (口說與聆聽)"), "微軟正黑體", 14, True, RGBColor(11, 60, 48))
-            for dia in data.get("dialogues", []):
-                p = doc_student.add_paragraph()
-                r_role = p.add_run(f"🗣️ {dia.get('role')}：")
-                style_run(r_role, "微軟正黑體", 11, True, RGBColor(184, 134, 11))
-                r_text = p.add_run(dia.get('hanji'))
-                style_run(r_text, "新細明體", 11, False)
-                
-                p_py = doc_student.add_paragraph()
-                r_py = p_py.add_run(f"   [{dia.get('tailo_diacritic')}]")
-                style_run(r_py, "Arial", 10, False, RGBColor(82, 100, 95))
-                
-                p_zh = doc_student.add_paragraph()
-                r_zh = p_zh.add_run(f"   (請寫出此句華語意譯：__________________________________)")
-                style_run(r_zh, "新細明體", 10, False, RGBColor(127, 140, 141))
-                
-            # 4. 評量題目
-            doc_student.add_paragraph()
-            h4 = doc_student.add_paragraph()
-            style_run(h4.add_run("四、課堂自我檢測 (隨堂測驗)"), "微軟正黑體", 14, True, RGBColor(11, 60, 48))
-            q_count = 1
-            for q in data.get("questions", []):
-                p = doc_student.add_paragraph()
-                style_run(p.add_run(f"({q_count}) {q.get('question')}"), "微軟正黑體", 11, True)
-                for idx, opt in enumerate(q.get("options", [])):
-                    p_opt = doc_student.add_paragraph()
-                    style_run(p_opt.add_run(f"    [  ] {opt}"), "新細明體", 10, False)
-                q_count += 1
-                
-            student_path = os.path.join(output_dir, "student_worksheet.docx")
-            doc_student.save(student_path)
-            print(f"  [+] 已產生學生版講義 Word: {student_path}")
-            
-            # ==================== 教師解答版講義 ====================
-            doc_teacher = Document()
-            title_p = doc_teacher.add_paragraph()
-            title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = title_p.add_run(f"臺語學習講義 (教師解答指導版)：{data.get('title')}")
-            style_run(run, "微軟正黑體", 18, True, RGBColor(184, 134, 11))
-            
-            h1 = doc_teacher.add_paragraph()
-            style_run(h1.add_run("一、核心對話與翻譯解答"), "微軟正黑體", 14, True, RGBColor(11, 60, 48))
-            for dia in data.get("dialogues", []):
-                p = doc_teacher.add_paragraph()
-                style_run(p.add_run(f"🗣️ {dia.get('role')}：{dia.get('hanji')}"), "微軟正黑體", 11, True)
-                p_ans = doc_teacher.add_paragraph()
-                r_ans = p_ans.add_run(f"   [翻譯解答] {dia.get('zh_tw')}")
-                style_run(r_ans, "微軟正黑體", 10, True, RGBColor(180, 40, 40))
-                
-            h2 = doc_teacher.add_paragraph()
-            style_run(h2.add_run("二、評量測驗答案與解析"), "微軟正黑體", 14, True, RGBColor(11, 60, 48))
-            q_count = 1
-            for q in data.get("questions", []):
-                p = doc_teacher.add_paragraph()
-                style_run(p.add_run(f"({q_count}) {q.get('question')}"), "微軟正黑體", 11, True)
-                
-                ans_text = q.get("options")[q.get("answer_index")]
-                p_ans = doc_teacher.add_paragraph()
-                r_ans = p_ans.add_run(f"   ★ 正確答案: {ans_text}")
-                style_run(r_ans, "微軟正黑體", 10, True, RGBColor(180, 40, 40))
-                
-                p_exp = doc_teacher.add_paragraph()
-                r_exp = p_exp.add_run(f"   [解析說明] {q.get('explanation')}")
-                style_run(r_exp, "新細明體", 10, False, RGBColor(120, 120, 120))
-                q_count += 1
-                
-            teacher_path = os.path.join(output_dir, "teacher_guide.docx")
-            doc_teacher.save(teacher_path)
-            print(f"  [+] 已產生教師版講義 Word: {teacher_path}")
-            
         except ImportError:
             print("  [-] 警告: 找不到 python-docx 模組，跳過 Word 檔案生成。")
+            return
+            
+        from docx.shared import Pt, RGBColor
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.oxml import parse_xml
+        from docx.oxml.ns import nsdecls
+            
+        def set_cell_shading(cell, color_hex):
+            shading_xml = f'<w:shd {nsdecls("w")} w:fill="{color_hex}"/>'
+            cell._tc.get_or_add_tcPr().append(parse_xml(shading_xml))
+            
+        def style_run(run, font_name="Arial", size_pt=11, bold=False, color_rgb=None):
+            run.font.name = font_name
+            run.font.size = Pt(size_pt)
+            run.bold = bold
+            if color_rgb:
+                run.font.color.rgb = color_rgb
 
+        # ==================== 學生版講義 ====================
+        doc_student = Document()
+        title_p = doc_student.add_paragraph()
+        title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = title_p.add_run(f"臺語學習講義：{data.get('title')}")
+        style_run(run, "微軟正黑體", 18, True, RGBColor(11, 60, 48))
+        
+        meta_p = doc_student.add_paragraph()
+        meta_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = meta_p.add_run(f"適用年級：{data.get('grade')} | 課程時間：{data.get('duration_minutes')} 分鐘 | 姓名：___________ 座號：_____")
+        style_run(run, "微軟正黑體", 10, False, RGBColor(82, 100, 95))
+        
+        # 1. 課綱指標
+        h1 = doc_student.add_paragraph()
+        style_run(h1.add_run("一、學習目標與課綱指標對照"), "微軟正黑體", 14, True, RGBColor(11, 60, 48))
+        for perf in data.get("curriculum", {}).get("learning_performance", []):
+            p = doc_student.add_paragraph()
+            style_run(p.add_run(f"• 學習表現：{perf}"), "新細明體", 10, False)
+        for cont in data.get("curriculum", {}).get("learning_content", []):
+            p = doc_student.add_paragraph()
+            style_run(p.add_run(f"• 學習內容：{cont}"), "新細明體", 10, False)
+            
+        # 2. 詞彙表 (美化斑馬紋表格)
+        h2 = doc_student.add_paragraph()
+        style_run(h2.add_run("二、核心詞彙認讀與手寫練習"), "微軟正黑體", 14, True, RGBColor(11, 60, 48))
+        
+        table = doc_student.add_table(rows=1, cols=5)
+        hdr_cells = table.rows[0].cells
+        hdr_cells[0].text = '圖示'
+        hdr_cells[1].text = '臺語漢字'
+        hdr_cells[2].text = '教育部臺羅拼音'
+        hdr_cells[3].text = '華語翻譯'
+        hdr_cells[4].text = '手寫練習 (漢字與拼音)'
+        
+        # 設定表頭顏色 (主題墨綠)
+        for cell in hdr_cells:
+            set_cell_shading(cell, "0B3C30")
+            for p in cell.paragraphs:
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                for r in p.runs:
+                    style_run(r, "微軟正黑體", 10, True, RGBColor(255, 255, 255))
+        
+        row_count = 0
+        for vocab in data.get("vocabulary", []):
+            row_cells = table.add_row().cells
+            
+            # 1. 置入圖片
+            from docx.shared import Inches
+            img_rel_path = vocab.get("image_file")
+            if img_rel_path:
+                full_img_path = os.path.join(output_dir, img_rel_path)
+                if os.path.exists(full_img_path):
+                    p_img = row_cells[0].paragraphs[0]
+                    p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    run_img = p_img.add_run()
+                    try:
+                        run_img.add_picture(full_img_path, width=Inches(0.9))
+                    except Exception as e:
+                        p_img.text = "[圖片損毀]"
+                else:
+                    row_cells[0].text = "無圖片"
+            else:
+                row_cells[0].text = "無圖片"
+                
+            row_cells[1].text = vocab.get("hanji", "")
+            row_cells[2].text = vocab.get("tailo_diacritic", "")
+            row_cells[3].text = vocab.get("zh_tw", "")
+            row_cells[4].text = "__________________"
+            
+            # 斑馬紋底色
+            row_color = "F6F8F6" if row_count % 2 == 1 else "FFFFFF"
+            for i, cell in enumerate(row_cells):
+                set_cell_shading(cell, row_color)
+                p = cell.paragraphs[0]
+                # 前四欄置中，手寫欄靠左
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if i < 4 else WD_ALIGN_PARAGRAPH.LEFT
+                for r in p.runs:
+                    style_run(r, "新細明體" if i != 2 else "Arial", 10, False, RGBColor(47, 62, 70))
+            row_count += 1
+            
+        # 3. 情境對話
+        doc_student.add_paragraph() # 空行
+        h3 = doc_student.add_paragraph()
+        style_run(h3.add_run("三、情境會話認讀 (口說與聆聽)"), "微軟正黑體", 14, True, RGBColor(11, 60, 48))
+        for dia in data.get("dialogues", []):
+            p = doc_student.add_paragraph()
+            r_role = p.add_run(f"🗣️ {dia.get('role')}：")
+            style_run(r_role, "微軟正黑體", 11, True, RGBColor(184, 134, 11))
+            r_text = p.add_run(dia.get('hanji'))
+            style_run(r_text, "新細明體", 11, False)
+            
+            p_py = doc_student.add_paragraph()
+            r_py = p_py.add_run(f"   [{dia.get('tailo_diacritic')}]")
+            style_run(r_py, "Arial", 10, False, RGBColor(82, 100, 95))
+            
+            p_zh = doc_student.add_paragraph()
+            r_zh = p_zh.add_run(f"   (請寫出此句華語意譯：__________________________________)")
+            style_run(r_zh, "新細明體", 10, False, RGBColor(127, 140, 141))
+            
+        # 4. 評量題目
+        doc_student.add_paragraph()
+        h4 = doc_student.add_paragraph()
+        style_run(h4.add_run("四、課堂自我檢測 (隨堂測驗)"), "微軟正黑體", 14, True, RGBColor(11, 60, 48))
+        q_count = 1
+        for q in data.get("questions", []):
+            p = doc_student.add_paragraph()
+            style_run(p.add_run(f"({q_count}) {q.get('question')}"), "微軟正黑體", 11, True)
+            for idx, opt in enumerate(q.get("options", [])):
+                p_opt = doc_student.add_paragraph()
+                style_run(p_opt.add_run(f"    [  ] {opt}"), "新細明體", 10, False)
+            q_count += 1
+            
+        student_path = os.path.join(output_dir, "student_worksheet.docx")
+        doc_student.save(student_path)
+        print(f"  [+] 已產生學生版講義 Word: {student_path}")
+        
+        # ==================== 教師解答版講義 ====================
+        doc_teacher = Document()
+        title_p = doc_teacher.add_paragraph()
+        title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = title_p.add_run(f"臺語學習講義 (教師解答指導版)：{data.get('title')}")
+        style_run(run, "微軟正黑體", 18, True, RGBColor(184, 134, 11))
+        
+        h1 = doc_teacher.add_paragraph()
+        style_run(h1.add_run("一、核心對話與翻譯解答"), "微軟正黑體", 14, True, RGBColor(11, 60, 48))
+        for dia in data.get("dialogues", []):
+            p = doc_teacher.add_paragraph()
+            style_run(p.add_run(f"🗣️ {dia.get('role')}：{dia.get('hanji')}"), "微軟正黑體", 11, True)
+            p_ans = doc_teacher.add_paragraph()
+            r_ans = p_ans.add_run(f"   [翻譯解答] {dia.get('zh_tw')}")
+            style_run(r_ans, "微軟正黑體", 10, True, RGBColor(180, 40, 40))
+            
+        h2 = doc_teacher.add_paragraph()
+        style_run(h2.add_run("二、評量測驗答案與解析"), "微軟正黑體", 14, True, RGBColor(11, 60, 48))
+        q_count = 1
+        for q in data.get("questions", []):
+            p = doc_teacher.add_paragraph()
+            style_run(p.add_run(f"({q_count}) {q.get('question')}"), "微軟正黑體", 11, True)
+            
+            ans_text = q.get("options")[q.get("answer_index")]
+            p_ans = doc_teacher.add_paragraph()
+            r_ans = p_ans.add_run(f"   ★ 正確答案: {ans_text}")
+            style_run(r_ans, "微軟正黑體", 10, True, RGBColor(180, 40, 40))
+            
+            p_exp = doc_teacher.add_paragraph()
+            r_exp = p_exp.add_run(f"   [解析說明] {q.get('explanation')}")
+            style_run(r_exp, "新細明體", 10, False, RGBColor(120, 120, 120))
+            q_count += 1
+            
+        teacher_path = os.path.join(output_dir, "teacher_guide.docx")
+        doc_teacher.save(teacher_path)
+        print(f"  [+] 已產生教師版講義 Word: {teacher_path}")
+        
     def _generate_html(self, data: Dict[str, Any], output_dir: str):
         # 製作帶有 Flashcard, Dialogue translation toggle, Interactive quiz, Timer, Randomizer 的高級 HTML
         

@@ -11,32 +11,16 @@ from typing import Dict, Any
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 解決 Windows UTF-8 輸出問題
-import builtins
-
-def safe_print(*args, **kwargs):
-    try:
-        builtins.print(*args, **kwargs)
-    except UnicodeEncodeError:
-        try:
-            encoding = sys.stdout.encoding or "utf-8"
-            new_args = []
-            for arg in args:
-                if isinstance(arg, str):
-                    new_args.append(arg.encode(encoding, errors="replace").decode(encoding))
-                else:
-                    new_args.append(arg)
-            builtins.print(*new_args, **kwargs)
-        except Exception:
-            pass
-
+# 安全輸出至 Windows 控制台
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import safe_print
 print = safe_print
 
 class FreeImageGenerator:
     def __init__(self, config_path: str = "config.json"):
         self.config_path = config_path
         self.config = self._load_config(config_path)
-        self.ollama_url = self.config.get("ollama", {}).get("api_base", "http://localhost:11434")
+        self.ollama_url = self.config.get("ollama", {}).get("url", "http://localhost:11434")
         self.default_model = self.config.get("ollama", {}).get("model", "qwen2.5-coder:1.5b")
 
     def _load_config(self, filepath: str) -> Dict[str, Any]:

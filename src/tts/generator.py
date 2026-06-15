@@ -1,5 +1,6 @@
 # 台語語音合成與下載模組 (generator.py)
 import os
+import sys
 import json
 import struct
 import base64
@@ -11,25 +12,8 @@ from typing import Dict, Any
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-import sys
-import builtins
-
-def safe_print(*args, **kwargs):
-    try:
-        builtins.print(*args, **kwargs)
-    except UnicodeEncodeError:
-        try:
-            encoding = sys.stdout.encoding or "utf-8"
-            new_args = []
-            for arg in args:
-                if isinstance(arg, str):
-                    new_args.append(arg.encode(encoding, errors="replace").decode(encoding))
-                else:
-                    new_args.append(arg)
-            builtins.print(*new_args, **kwargs)
-        except Exception:
-            pass
-
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import safe_print
 print = safe_print
 
 class TaigiTTS:

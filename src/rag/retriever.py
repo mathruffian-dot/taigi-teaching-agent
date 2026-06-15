@@ -1,7 +1,12 @@
 # 檔案型 RAG 檢索器 (retriever.py)
 import os
+import sys
 import json
 from typing import List, Dict, Any
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import safe_print
+print = safe_print
 
 class TaigiRetriever:
     def __init__(self, database_dir: str = None):

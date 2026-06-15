@@ -3,10 +3,14 @@ import os
 import sys
 import json
 import argparse
+from datetime import datetime
 from typing import Dict, Any
 
 # 加入專案 src 目錄到路徑
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils import safe_print
+print = safe_print
 
 from rag.retriever import TaigiRetriever
 from tailo.validator import convert_sentence_numeric_to_diacritic
@@ -340,9 +344,11 @@ class MaterialGenerator:
         # 2. 建立情境對話 HTML
         dialogue_html = ""
         for idx, dia in enumerate(data.get("dialogues", [])):
+            role_name = dia.get('role') or "？"
+            avatar_char = role_name[0]
             dialogue_html += f"""
             <div class="dialogue-row">
-              <div class="speaker-avatar">{dia.get('role')[0]}</div>
+              <div class="speaker-avatar">{avatar_char}</div>
               <div class="dialogue-bubble" onclick="toggleTranslation({idx})">
                 <div class="speaker-name">{dia.get('role')}</div>
                 <div class="dialogue-sentence">
@@ -1256,8 +1262,8 @@ class MaterialGenerator:
             
             statusDiv.innerHTML = `
               <div class="speak-controls">
-                <button class="speak-play-btn" onclick="playRecord(event, '$${{audioUrl}}')">▶️ 播放我的發音</button>
-                <button class="speak-eval-btn" onclick="evaluateSpeech(event, '$${{type}}', $${{idx}}, '$${{targetText}}')">🎯 開始評估</button>
+                <button class="speak-play-btn" onclick="playRecord(event, '${{audioUrl}}')">▶️ 播放我的發音</button>
+                <button class="speak-eval-btn" onclick="evaluateSpeech(event, '${{type}}', ${{idx}}, '${{targetText}}')">🎯 開始評估</button>
               </div>
             `;
             
@@ -1401,14 +1407,14 @@ class MaterialGenerator:
       resultDiv.innerHTML = `
         <div class="eval-card">
           <div class="eval-score-row">
-            <span class="eval-score $${{scoreClass}}">$${{score}} 分</span>
-            <span class="eval-feedback">$${{feedbackText}}</span>
+            <span class="eval-score ${{scoreClass}}">${{score}} 分</span>
+            <span class="eval-feedback">${{feedbackText}}</span>
           </div>
           <div class="eval-details">
-            <div><strong>目標句子：</strong> $${{targetText}}</div>
-            <div><strong>辨識結果：</strong> $${{recognizedText || "(無)"}}</div>
+            <div><strong>目標句子：</strong> ${{targetText}}</div>
+            <div><strong>辨識結果：</strong> ${{recognizedText || "(無)"}}</div>
           </div>
-          $${{offlineWarning}}
+          ${{offlineWarning}}
         </div>
       `;
     }}
@@ -1509,7 +1515,7 @@ class MaterialGenerator:
     def _generate_review_report(self, data: Dict[str, Any], output_dir: str):
         report_lines = [
             f"# 臺語教師教學審核報告：{data.get('title')}",
-            f"產出日期: 2026-06-14",
+            f"產出日期: {datetime.now().strftime('%Y-%m-%d')}",
             "",
             "## 1. 課綱與教材檢核狀態",
             "本教材已串接 108 課綱與 seed 詞庫做字元比對，檢核結果如下：",

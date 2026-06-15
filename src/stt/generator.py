@@ -17,6 +17,8 @@ class TaigiSTT:
         self.api_key = self.stt_config.get("api_key", "")
         self.api_url = self.stt_config.get("api_url", "https://api.openai.com/v1/audio/transcriptions")
         self.model = self.stt_config.get("model", "whisper-1")
+        # 快取本地 faster-whisper 模型，避免每次辨識都重新載入（耗時且吃記憶體）
+        self._whisper_model = None
 
     def _load_config(self, filepath: str) -> Dict[str, Any]:
         if os.path.exists(filepath):
@@ -79,6 +81,12 @@ class TaigiSTT:
         """
         本地使用 faster-whisper 引擎進行辨識 (若已安裝相依套件)。
         會自動透過 ffmpeg 轉換音訊為 16kHz mono WAV，以保證解碼相容性。
+
+        ⚠️ 重要限制：此處用的是「通用 Whisper」模型搭配 language="zh"（華語），
+        對「臺語」的辨識率偏低，回傳的漢字常是華語近似而非正確台語。
+        因此目前的發音評分僅供開發/展示，分數不可作為正式評量依據。
+        正式部署應改接 CLAUDE.md 指定的台語專用模型
+        (Breeze-ASR-26 / Whisper-Taiwanese-model-v0.5 / Taiwan-Tongues-ASR-CE)。
         """
         converted_path = None
         try:
@@ -100,9 +108,13 @@ class TaigiSTT:
             input_to_whisper = converted_path if (res_conv.returncode == 0 and os.path.exists(converted_path)) else audio_path
             
             from faster_whisper import WhisperModel
-            model_size = self.stt_config.get("local_model_size", "tiny") # 預設改用 tiny 提升本地 CPU 運算速度
-            model = WhisperModel(model_size, device="cpu", compute_type="int8")
-            
+            # 模型僅在首次辨識時載入，之後重用快取實例
+            if self._whisper_model is None:
+                model_size = self.stt_config.get("local_model_size", "tiny") # 預設改用 tiny 提升本地 CPU 運算速度
+                print("  [!] 注意: 目前使用通用 Whisper 辨識台語 (華語近似)，發音評分僅供展示、非正式評量依據。")
+                self._whisper_model = WhisperModel(model_size, device="cpu", compute_type="int8")
+            model = self._whisper_model
+
             segments, info = model.transcribe(input_to_whisper, beam_size=5, language="zh")
             text = "".join([segment.text for segment in segments]).strip()
             print(f"  [+] 本地 ASR 辨識成功: 「{text}」")

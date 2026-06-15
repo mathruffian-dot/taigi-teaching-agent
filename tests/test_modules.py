@@ -392,6 +392,57 @@ def test_outline_validator_accepts_good_data():
     }
     assert gen._validate_outline(good_data) is True
 
+def test_html_pronunciation_eval_not_broken(tmp_path):
+    """回歸測試：確保產生的互動網頁 JS 樣板字串沒有多餘的 $（曾導致發音評估功能整個失效）。"""
+    from generators.material_generator import MaterialGenerator
+    gen = MaterialGenerator()
+
+    data = {
+        "title": "測試單元",
+        "grade": "國中七年級",
+        "duration_minutes": 45,
+        "curriculum": {"learning_performance": [], "learning_content": []},
+        "vocabulary": [
+            {"hanji": "食飯", "tailo_diacritic": "tsia̍h-pn̄g", "zh_tw": "吃飯",
+             "audio_file": "audio/vocab_食飯.wav", "image_file": ""}
+        ],
+        "dialogues": [
+            {"role": "阿偉", "hanji": "咱來去食飯", "tailo_diacritic": "lán lâi-khì tsia̍h-pn̄g",
+             "zh_tw": "我們來去吃飯", "audio_file": "audio/dialogue_0.wav"}
+        ],
+        "questions": [
+            {"id": "q1", "question": "測試", "options": ["A", "B", "C", "D"],
+             "answer_index": 0, "explanation": "解析"}
+        ]
+    }
+
+    gen._generate_html(data, str(tmp_path))
+    html = (tmp_path / "interactive_website.html").read_text(encoding="utf-8")
+
+    # 1. 絕不能再出現多餘的 $${ 樣式（這是先前的 bug）
+    assert "$${" not in html
+    # 2. 正確的 JS 樣板插值應原樣輸出
+    assert "evaluateSpeech(event, '${type}', ${idx}, '${targetText}')" in html
+    assert "playRecord(event, '${audioUrl}')" in html
+    assert "${scoreClass}" in html
+
+
+def test_html_handles_empty_role(tmp_path):
+    """role 為空字串時不應拋 IndexError。"""
+    from generators.material_generator import MaterialGenerator
+    gen = MaterialGenerator()
+    data = {
+        "title": "測試", "grade": "國中七年級", "duration_minutes": 45,
+        "curriculum": {"learning_performance": [], "learning_content": []},
+        "vocabulary": [],
+        "dialogues": [{"role": "", "hanji": "test", "tailo_diacritic": "test",
+                       "zh_tw": "測試", "audio_file": ""}],
+        "questions": []
+    }
+    gen._generate_html(data, str(tmp_path))  # 不應拋例外
+    assert (tmp_path / "interactive_website.html").exists()
+
+
 def test_vocabulary_db_expanded():
     from rag.retriever import TaigiRetriever
     retriever = TaigiRetriever()

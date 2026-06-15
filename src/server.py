@@ -15,6 +15,13 @@ from stt.generator import TaigiSTT
 
 app = FastAPI(title="Taigi ASR Local Server")
 
+# 以專案根目錄的 config.json 為準（避免以 src 為工作目錄啟動時讀不到設定而默默降級為 dummy）
+project_root = os.path.dirname(current_dir)
+config_path = os.path.join(project_root, "config.json")
+
+# 啟動時建立單一 STT 實例並重用，避免每次請求重新載入 whisper 模型（耗時且吃記憶體）
+stt = TaigiSTT(config_path)
+
 # 設定 CORS 中間件，允許離線網頁 (file:/// 協議) 跨網域請求
 app.add_middleware(
     CORSMiddleware,
@@ -55,8 +62,7 @@ async def speech_to_text_endpoint(
             content = await file.read()
             buffer.write(content)
             
-        # 實例化語音辨識器並執行辨識
-        stt = TaigiSTT()
+        # 使用啟動時建立的全域 STT 實例執行辨識（模型已快取）
         recognized_text = stt.speech_to_text(temp_path, target_text)
         return {"text": recognized_text}
         

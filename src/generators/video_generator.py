@@ -307,6 +307,17 @@ class TaigiVideoGenerator:
             else:
                 img_html = '<div class="img-wrapper" style="background: #e9ecef; display:flex; align-items:center; justify-content:center; font-size:40px; color:#826252;">無插圖</div>'
                 
+            # 例句區塊：僅在教材確實提供例句欄位時才渲染，避免顯示空白區塊
+            sentence_hanji = vocab.get('sentence_hanji', '')
+            sentence_html = ""
+            if sentence_hanji:
+                sentence_html = f"""
+                    <div style="border-top: 2px solid #C8941F; margin-top: 40px; padding-top: 20px; width: 100%;">
+                        <div style="font-size: 22px; color: #826252; font-weight: 700; margin-bottom: 10px;">例句練習</div>
+                        <div style="font-size: 40px; font-weight: 700; color: #0B3C30; line-height:1.3;">{sentence_hanji}</div>
+                        <div style="font-size: 28px; font-weight: 500; color: #E36414; margin-top: 8px; line-height:1.3;">{vocab.get('sentence_tailo_diacritic', '')}</div>
+                    </div>"""
+
             slides_html += f"""
             <div class="slide vocab" style="background-color: #FAF7EE;">
                 <div class="left-col">
@@ -317,12 +328,7 @@ class TaigiVideoGenerator:
                     <div class="hanji">{vocab.get('hanji')}</div>
                     <div class="tailo">{vocab.get('tailo_diacritic')}</div>
                     <div class="zh">{vocab.get('zh_tw')}</div>
-                    
-                    <div style="border-top: 2px solid #C8941F; margin-top: 40px; padding-top: 20px; width: 100%;">
-                        <div style="font-size: 22px; color: #826252; font-weight: 700; margin-bottom: 10px;">例句練習</div>
-                        <div style="font-size: 40px; font-weight: 700; color: #0B3C30; line-height:1.3;">{vocab.get('sentence_hanji', '')}</div>
-                        <div style="font-size: 28px; font-weight: 500; color: #E36414; margin-top: 8px; line-height:1.3;">{vocab.get('sentence_tailo_diacritic', '')}</div>
-                    </div>
+                    {sentence_html}
                 </div>
             </div>
             """

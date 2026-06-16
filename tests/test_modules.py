@@ -90,6 +90,32 @@ def test_tts_dummy_synthesize(tmp_path):
     assert output_file.exists()
     assert output_file.stat().st_size > 0
 
+def test_tts_concat_segmentation(monkeypatch):
+    """接音合成斷詞：最長詞優先，缺字略過（離線，mock 萌典查詢）。"""
+    from tts.generator import TaigiTTS
+    tts = TaigiTTS()
+    available = {"菜市仔": "p1", "買": "p2", "物件": "p3", "錢": "p4"}
+    monkeypatch.setattr(tts, "_get_word_audio", lambda w: available.get(w))
+
+    # 最長詞優先：菜市仔 應整詞匹配，而非拆成 菜/市/仔
+    assert [w for w, _ in tts._segment_for_audio("菜市仔")] == ["菜市仔"]
+    # 詞組可拆為已收錄的詞
+    assert [w for w, _ in tts._segment_for_audio("買物件")] == ["買", "物件"]
+    # 含標點與缺字：x 無音檔應被略過
+    assert [w for w, _ in tts._segment_for_audio("買x錢")] == ["買", "錢"]
+
+
+def test_tts_concat_falls_back_to_dummy(tmp_path, monkeypatch):
+    """接音合成在句中無任何可發音詞時，應降級為 dummy 並仍產生有效 wav。"""
+    from tts.generator import TaigiTTS
+    tts = TaigiTTS()
+    tts.provider = "concat"
+    monkeypatch.setattr(tts, "_get_word_audio", lambda w: None)  # 全部查無
+    out = tmp_path / "s.wav"
+    assert tts.synthesize_sentence("無收錄內容", str(out)) is True
+    assert out.exists() and out.stat().st_size > 0
+
+
 def test_stt_dummy(tmp_path):
     from stt.generator import TaigiSTT
     stt = TaigiSTT()

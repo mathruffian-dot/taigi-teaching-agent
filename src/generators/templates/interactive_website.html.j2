@@ -821,27 +821,18 @@
       }
     }
 
-    // 語音播放占位 (詞彙字卡)
+    // 詞彙字卡語音播放（僅播放教育部官方台語音檔；無音檔時誠實告知，
+    // 不以瀏覽器華語／粵語語音冒充台語發音，避免誤導學習者）
     function speakText(event, text, audioUrl) {
       event.stopPropagation(); // 防止翻轉卡片
       if (audioUrl) {
         const audio = new Audio(audioUrl);
         audio.play().catch(err => {
-          console.log("播放本地音訊失敗，切換至語音合成降級模式:", err);
-          fallbackSpeak(text);
+          console.warn("台語音檔載入失敗:", err);
+          alert("此詞的台語音檔載入失敗或不存在，請參考卡片上的臺羅拼音。");
         });
       } else {
-        fallbackSpeak(text);
-      }
-    }
-
-    function fallbackSpeak(text) {
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'zh-HK'; // 部份系統暫用粵語或華語替代
-        window.speechSynthesis.speak(utterance);
-      } else {
-        alert("瀏覽器不支援 Speech Synthesis。");
+        alert("此詞目前尚無教育部官方台語發音音檔，請參考卡片上的臺羅拼音。");
       }
     }
 

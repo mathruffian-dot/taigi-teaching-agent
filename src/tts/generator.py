@@ -1,12 +1,16 @@
 # 台語語音合成與下載模組 (generator.py)
 import os
+import re
 import sys
 import json
 import struct
+import shutil
 import base64
+import tempfile
+import subprocess
 import urllib.parse
 import requests
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List, Tuple
 
 # 關閉 urllib3 在 verify=False 時產生的 InsecureRequestWarning 警告
 import urllib3
@@ -16,12 +20,19 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import safe_print
 print = safe_print
 
+# 萌典台語音檔 CDN
+MOEDICT_CDN_BASE = "https://1763c5ee9859e0316ed6-db85b55a6a3fbe33f09b9245992383bd.ssl.cf1.rackcdn.com"
+
+
 class TaigiTTS:
     def __init__(self, config_path: str = "config.json"):
         self.config = self._load_config(config_path)
         self.tts_config = self.config.get("tts", {})
         self.provider = self.tts_config.get("provider", "dummy")
         self.api_key = self.tts_config.get("api_key", "")
+        # 接音合成用：單詞官方音檔快取（記憶體 + 磁碟），避免重複查詢萌典
+        self._audio_cache_dir = os.path.join(tempfile.gettempdir(), "taigi_moedict_words")
+        self._word_audio_cache: Dict[str, Optional[str]] = {}
 
     def _load_config(self, filepath: str) -> Dict[str, Any]:
         if os.path.exists(filepath):
@@ -32,68 +43,193 @@ class TaigiTTS:
                     pass
         return {}
 
-    def fetch_vocab_audio(self, hanji: str, output_path: str) -> bool:
+    # ==================== 萌典官方音檔下載 ====================
+    def _try_moedict_ogg(self, hanji: str, output_path: str, quiet: bool = False) -> bool:
         """
         向萌典 API 查詢詞條，取得語音 ID 並下載對應教育部《臺灣台語常用詞辭典》官方 OGG 音訊檔。
+        quiet=True 時不輸出查詢過程（供接音合成大量試查單詞時降噪）。
         """
         try:
-            print(f"[*] 嘗試為詞彙 「{hanji}」 下載萌典官方發音...")
+            if not quiet:
+                print(f"[*] 嘗試為詞彙 「{hanji}」 下載萌典官方發音...")
             encoded_hanji = urllib.parse.quote(hanji)
             api_url = f"https://www.moedict.tw/t/{encoded_hanji}.json"
-            
-            # 查詢萌典 JSON
+
             res = requests.get(api_url, verify=False, timeout=5)
             if res.status_code != 200:
-                print(f"  [-] 萌典 API 查詢失敗: HTTP {res.status_code}")
+                if not quiet:
+                    print(f"  [-] 萌典 API 查詢失敗: HTTP {res.status_code}")
                 return False
-                
+
             data = res.json()
             # 尋找音標語音 ID
             audio_id = None
             if "h" in data and len(data["h"]) > 0:
                 audio_id = data["h"][0].get("_")
-                
+
             if not audio_id:
-                print(f"  [-] 無法在萌典中找到詞彙 「{hanji}」 的語音 ID。")
+                if not quiet:
+                    print(f"  [-] 無法在萌典中找到詞彙 「{hanji}」 的語音 ID。")
                 return False
-                
-            # 依語言類別處理語音 ID 的 padding (台語 /t/ 需要補 0 到 5 碼)
-            # 例如: "8965" -> "08965"
+
+            # 依語言類別處理語音 ID 的 padding (台語 /t/ 需要補 0 到 5 碼)，例如 "8965" -> "08965"
             normalized_audio_id = str(audio_id).strip()
             if normalized_audio_id.isdigit() and len(normalized_audio_id) < 5:
                 normalized_audio_id = normalized_audio_id.zfill(5)
 
-            # 台語音檔 CDN: https://1763c5ee9859e0316ed6-db85b55a6a3fbe33f09b9245992383bd.ssl.cf1.rackcdn.com
-            cdn_base = "https://1763c5ee9859e0316ed6-db85b55a6a3fbe33f09b9245992383bd.ssl.cf1.rackcdn.com"
-            ogg_url = f"{cdn_base}/{normalized_audio_id}.ogg"
+            ogg_url = f"{MOEDICT_CDN_BASE}/{normalized_audio_id}.ogg"
             ogg_res = requests.get(ogg_url, verify=False, timeout=10)
             if ogg_res.status_code != 200:
-                print(f"  [-] 音訊檔下載失敗: HTTP {ogg_res.status_code}")
+                if not quiet:
+                    print(f"  [-] 音訊檔下載失敗: HTTP {ogg_res.status_code}")
                 return False
-                
-            # 確保目錄存在並寫入
+
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             with open(output_path, "wb") as f:
                 f.write(ogg_res.content)
-            print(f"  [+] 成功儲存詞彙 「{hanji}」 語音檔至: {output_path}")
+            if not quiet:
+                print(f"  [+] 成功儲存詞彙 「{hanji}」 語音檔至: {output_path}")
             return True
-            
+
         except Exception as e:
-            print(f"  [-] 下載 「{hanji}」 音訊時發生異常: {str(e)}")
+            if not quiet:
+                print(f"  [-] 下載 「{hanji}」 音訊時發生異常: {str(e)}")
             return False
 
+    def fetch_vocab_audio(self, hanji: str, output_path: str) -> bool:
+        """下載單一詞條的教育部官方台語音檔（對外介面，沿用舊行為）。"""
+        return self._try_moedict_ogg(hanji, output_path, quiet=False)
+
+    # ==================== 句子語音合成 ====================
     def synthesize_sentence(self, text: str, output_path: str) -> bool:
         """
-        將自訂句子進行台語語音合成並存檔。支援 yating 與 dummy 模式。
+        將自訂句子進行台語語音合成並存檔。
+        支援 provider：yating（雲端 API）、concat/moedict（接音合成，串接官方單詞音檔）、dummy（靜音佔位）。
         """
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
+
         if self.provider == "yating" and self.api_key:
             return self._synthesize_yating(text, output_path)
-        else:
-            if self.provider == "yating":
-                print("  [!] 警告: 已設定 provider 為 yating 但未提供 api_key。自動降級為 dummy 模式。")
+        if self.provider in ("concat", "moedict", "moedict_concat"):
+            return self._synthesize_concatenative(text, output_path)
+        if self.provider == "yating":
+            print("  [!] 警告: 已設定 provider 為 yating 但未提供 api_key。自動降級為 dummy 模式。")
+        return self._synthesize_dummy(text, output_path)
+
+    def _get_word_audio(self, word: str) -> Optional[str]:
+        """
+        取得單一台語詞的官方音檔路徑（帶記憶體 + 磁碟快取）。查無音檔回傳 None。
+        """
+        if not word or not word.strip():
+            return None
+        if word in self._word_audio_cache:
+            return self._word_audio_cache[word]
+
+        os.makedirs(self._audio_cache_dir, exist_ok=True)
+        cache_path = os.path.join(self._audio_cache_dir, f"w_{word}.ogg")
+        if os.path.exists(cache_path) and os.path.getsize(cache_path) > 0:
+            self._word_audio_cache[word] = cache_path
+            return cache_path
+
+        ok = self._try_moedict_ogg(word, cache_path, quiet=True)
+        self._word_audio_cache[word] = cache_path if ok else None
+        return self._word_audio_cache[word]
+
+    def _segment_for_audio(self, clause: str, max_len: int = 4) -> List[Tuple[str, str]]:
+        """
+        以「最長詞優先」策略，對照萌典是否收錄該詞來斷詞。
+        回傳 [(詞, 音檔路徑), ...]；查無音檔的字會被略過（造成空隙）。
+        """
+        result: List[Tuple[str, str]] = []
+        i, n = 0, len(clause)
+        while i < n:
+            matched = None
+            for length in range(min(max_len, n - i), 0, -1):
+                sub = clause[i:i + length]
+                path = self._get_word_audio(sub)
+                if path:
+                    matched = (sub, path)
+                    break
+            if matched:
+                result.append(matched)
+                i += len(matched[0])
+            else:
+                i += 1  # 查無此字音檔，略過
+        return result
+
+    def _synthesize_concatenative(self, text: str, output_path: str) -> bool:
+        """
+        接音合成：將句子斷詞後，串接教育部官方單詞音檔。需要 ffmpeg。
+        若 ffmpeg 不存在或無任何可用單詞音檔，降級為 dummy 靜音檔。
+        """
+        if not shutil.which("ffmpeg"):
+            print("  [!] 警告: 找不到 ffmpeg，接音合成降級為 dummy 模式。")
             return self._synthesize_dummy(text, output_path)
+
+        print(f"[*] 執行接音合成（串接教育部官方單詞發音）：「{text}」...")
+        # 1. 以標點斷句，再逐句斷詞
+        clauses = [c for c in re.split(r"[，。！？、；：,.!?\s]+", text) if c]
+        word_paths: List[str] = []
+        seg_preview: List[str] = []
+        for clause in clauses:
+            for word, path in self._segment_for_audio(clause):
+                word_paths.append(path)
+                seg_preview.append(word)
+
+        if not word_paths:
+            print("  [-] 句中無任何收錄於萌典的詞，接音合成降級為 dummy 模式。")
+            return self._synthesize_dummy(text, output_path)
+
+        print(f"  [*] 斷詞結果（可發音部分）：{' / '.join(seg_preview)}")
+
+        tmp_dir = tempfile.mkdtemp(prefix="taigi_concat_")
+        try:
+            # 2. 將每個單詞音檔正規化為 22050Hz 單聲道 wav
+            norm_paths: List[str] = []
+            for idx, p in enumerate(word_paths):
+                w = os.path.join(tmp_dir, f"w{idx:03d}.wav")
+                subprocess.run(
+                    ["ffmpeg", "-y", "-i", p, "-ar", "22050", "-ac", "1", w],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                )
+                if os.path.exists(w) and os.path.getsize(w) > 0:
+                    norm_paths.append(w)
+
+            if not norm_paths:
+                print("  [-] 單詞音檔轉檔皆失敗，降級為 dummy 模式。")
+                return self._synthesize_dummy(text, output_path)
+
+            # 3. 產生詞間 0.12 秒靜音作為自然停頓
+            silence = os.path.join(tmp_dir, "sil.wav")
+            subprocess.run(
+                ["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=22050:cl=mono",
+                 "-t", "0.12", silence],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+
+            # 4. 串接（concat demuxer，詞與詞之間插入靜音）
+            list_path = os.path.join(tmp_dir, "list.txt")
+            with open(list_path, "w", encoding="utf-8") as f:
+                for idx, w in enumerate(norm_paths):
+                    if idx > 0 and os.path.exists(silence):
+                        f.write(f"file '{silence.replace(chr(92), '/')}'\n")
+                    f.write(f"file '{w.replace(chr(92), '/')}'\n")
+
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            res = subprocess.run(
+                ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_path,
+                 "-ar", "22050", "-ac", "1", output_path],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+            ok = res.returncode == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 0
+            if ok:
+                print(f"  [+] 接音合成完成：{output_path}")
+            else:
+                print("  [-] ffmpeg 串接失敗，降級為 dummy 模式。")
+                return self._synthesize_dummy(text, output_path)
+            return ok
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
     def _synthesize_yating(self, text: str, output_path: str) -> bool:
         """
@@ -101,7 +237,7 @@ class TaigiTTS:
         """
         try:
             print(f"[*] 正在呼叫雅婷 TTS 合成語音：「{text}」...")
-            
+
             # 使用雅婷 TTS v2 短語音合成 API (支援 tai_female_1 模型)
             url = "https://tts.api.yating.tw/v2/speeches/short"
             headers = {
@@ -115,7 +251,7 @@ class TaigiTTS:
                 "energy": 1.0,
                 "voice": "tai_female_1"
             }
-            
+
             res = requests.post(url, json=payload, headers=headers, timeout=15)
             if res.status_code == 200:
                 res_data = res.json()
@@ -133,7 +269,7 @@ class TaigiTTS:
             else:
                 print(f"  [-] 雅婷 API 呼叫失敗: HTTP {res.status_code} - {res.text}")
                 return False
-                
+
         except Exception as e:
             print(f"  [-] 雅婷 TTS 合成異常: {str(e)}")
             return False
@@ -148,12 +284,12 @@ class TaigiTTS:
             sample_rate = 8000
             num_samples = int(sample_rate * 0.5)
             data = b'\x00\x00' * num_samples
-            
+
             num_channels = 1
             bits_per_sample = 16
             byte_rate = sample_rate * num_channels * bits_per_sample // 8
             block_align = num_channels * bits_per_sample // 8
-            
+
             # 建立標準 WAV 檔頭
             header = struct.pack(
                 '<4sI4s4sIHHIIHH4sI',
@@ -171,7 +307,7 @@ class TaigiTTS:
                 b'data',
                 len(data)
             )
-            
+
             with open(output_path, "wb") as f:
                 f.write(header + data)
             print(f"  [+] 已建立 Dummy 佔位音訊檔: {output_path}")

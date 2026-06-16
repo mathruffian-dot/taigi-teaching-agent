@@ -12,7 +12,8 @@
     "repo": "taigi-teaching-agent"
   },
   "tts": {
-    "provider": "dummy",
+    "_comment": "provider 可選：concat（接音合成，串接教育部官方單詞音檔，需 ffmpeg，推薦）／yating（雲端 API，需 api_key）／dummy（靜音佔位）",
+    "provider": "concat",
     "api_key": ""
   },
   "stt": {

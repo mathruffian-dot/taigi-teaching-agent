@@ -33,8 +33,9 @@ class TaigiTTS:
         # 接音合成用：單詞官方音檔快取（記憶體 + 磁碟），避免重複查詢萌典
         self._audio_cache_dir = os.path.join(tempfile.gettempdir(), "taigi_moedict_words")
         self._word_audio_cache: Dict[str, Optional[str]] = {}
-        # 接音合成詞間靜音秒數（可調，越小越緊湊）。
+        # 接音合成停頓秒數（可調，越小越緊湊）：詞間（句內）與標點處（句間）分開設定。
         self.concat_gap_sec = float(self.tts_config.get("concat_gap_sec", 0.06))
+        self.concat_phrase_gap_sec = float(self.tts_config.get("concat_phrase_gap_sec", 0.22))
         # 是否修剪單詞音檔頭尾靜音：預設關閉。修剪會削掉入聲(-p/-t/-k/-h)等較弱字尾、
         # 破壞發音，僅在確認無副作用時才開。
         self.concat_trim_silence = bool(self.tts_config.get("concat_trim_silence", False))
@@ -244,63 +245,80 @@ class TaigiTTS:
             return self._synthesize_dummy(text, output_path)
 
         print(f"[*] 執行接音合成（串接教育部官方單詞發音）：「{text}」...")
-        # 1. 以標點斷句，再逐句斷詞
+        # 1. 以標點斷句，再逐句斷詞（保留分句結構，句間給較長停頓）
         clauses = [c for c in re.split(r"[，。！？、；：,.!?\s]+", text) if c]
-        word_paths: List[str] = []
+        clause_segs: List[List[Tuple[str, str]]] = []
         seg_preview: List[str] = []
         for clause in clauses:
-            for word, path in self._segment_for_audio(clause):
-                word_paths.append(path)
-                seg_preview.append(word)
+            seg = self._segment_for_audio(clause)
+            if seg:
+                clause_segs.append(seg)
+                seg_preview.append("".join(w for w, _ in seg))
 
-        if not word_paths:
+        if not clause_segs:
             print("  [-] 句中無任何收錄於萌典的詞，接音合成降級為 dummy 模式。")
             return self._synthesize_dummy(text, output_path)
 
-        print(f"  [*] 斷詞結果（可發音部分）：{' / '.join(seg_preview)}")
+        print(f"  [*] 斷詞結果（可發音部分）：{' | '.join(seg_preview)}")
 
         tmp_dir = tempfile.mkdtemp(prefix="taigi_concat_")
         try:
-            # 2. 將每個單詞音檔正規化為 22050Hz 單聲道 wav；可選修剪頭尾靜音以縮短停頓
-            norm_paths: List[str] = []
-            # silenceremove：修掉開頭與結尾低於 -45dB 的靜音（保留語音本體）
+            # 2. 將每個單詞音檔正規化為 22050Hz 單聲道 wav（保留分句結構）；
+            #    可選修剪頭尾靜音（預設關閉，修剪會削掉入聲字尾破壞發音）。
             af = ("silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0:"
                   "stop_periods=1:stop_threshold=-45dB:stop_silence=0.02:detection=peak")
-            for idx, p in enumerate(word_paths):
-                w = os.path.join(tmp_dir, f"w{idx:03d}.wav")
-                cmd = ["ffmpeg", "-y", "-i", p, "-ar", "22050", "-ac", "1"]
-                if self.concat_trim_silence:
-                    cmd += ["-af", af]
-                cmd.append(w)
-                subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                # 修剪後若意外變空，退回不修剪版本，避免整詞消失
-                if (not os.path.exists(w) or os.path.getsize(w) < 1024) and self.concat_trim_silence:
-                    subprocess.run(["ffmpeg", "-y", "-i", p, "-ar", "22050", "-ac", "1", w],
-                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                if os.path.exists(w) and os.path.getsize(w) > 0:
-                    norm_paths.append(w)
+            norm_clauses: List[List[str]] = []
+            idx = 0
+            for seg in clause_segs:
+                norm_words: List[str] = []
+                for _word, p in seg:
+                    w = os.path.join(tmp_dir, f"w{idx:03d}.wav")
+                    idx += 1
+                    cmd = ["ffmpeg", "-y", "-i", p, "-ar", "22050", "-ac", "1"]
+                    if self.concat_trim_silence:
+                        cmd += ["-af", af]
+                    cmd.append(w)
+                    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    # 修剪後若意外變空，退回不修剪版本，避免整詞消失
+                    if (not os.path.exists(w) or os.path.getsize(w) < 1024) and self.concat_trim_silence:
+                        subprocess.run(["ffmpeg", "-y", "-i", p, "-ar", "22050", "-ac", "1", w],
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    if os.path.exists(w) and os.path.getsize(w) > 0:
+                        norm_words.append(w)
+                if norm_words:
+                    norm_clauses.append(norm_words)
 
-            if not norm_paths:
+            if not norm_clauses:
                 print("  [-] 單詞音檔轉檔皆失敗，降級為 dummy 模式。")
                 return self._synthesize_dummy(text, output_path)
 
-            # 3. 產生詞間靜音作為自然停頓（秒數可由 concat_gap_sec 設定）
-            silence = None
-            if self.concat_gap_sec > 0:
-                silence = os.path.join(tmp_dir, "sil.wav")
+            # 3. 產生兩種停頓靜音：詞間（句內，較短）與標點處（句間，較長）
+            def make_silence(seconds: float, name: str) -> Optional[str]:
+                if seconds <= 0:
+                    return None
+                path = os.path.join(tmp_dir, name)
                 subprocess.run(
                     ["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=22050:cl=mono",
-                     "-t", f"{self.concat_gap_sec:.3f}", silence],
+                     "-t", f"{seconds:.3f}", path],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 )
+                return path if os.path.exists(path) else None
 
-            # 4. 串接（concat demuxer，詞與詞之間插入靜音）
+            word_sil = make_silence(self.concat_gap_sec, "sil_word.wav")
+            phrase_sil = make_silence(self.concat_phrase_gap_sec, "sil_phrase.wav")
+
+            # 4. 串接（concat demuxer）：句內詞間插短靜音，句與句間插長靜音
             list_path = os.path.join(tmp_dir, "list.txt")
             with open(list_path, "w", encoding="utf-8") as f:
-                for idx, w in enumerate(norm_paths):
-                    if idx > 0 and silence and os.path.exists(silence):
-                        f.write(f"file '{silence.replace(chr(92), '/')}'\n")
-                    f.write(f"file '{w.replace(chr(92), '/')}'\n")
+                def write_file(p: str):
+                    f.write(f"file '{p.replace(chr(92), '/')}'\n")
+                for ci, words in enumerate(norm_clauses):
+                    if ci > 0 and phrase_sil:
+                        write_file(phrase_sil)
+                    for wi, w in enumerate(words):
+                        if wi > 0 and word_sil:
+                            write_file(word_sil)
+                        write_file(w)
 
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             res = subprocess.run(

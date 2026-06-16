@@ -75,7 +75,7 @@ class MaterialGenerator:
                     # 降級：使用 dummy/yating 合成 wav 檔
                     wav_filename = f"vocab_{hanji}.wav"
                     wav_path = os.path.join(audio_dir, wav_filename)
-                    self.tts.synthesize_sentence(hanji, wav_path)
+                    self.tts.synthesize_sentence(hanji, wav_path, vocab.get("tailo_numeric", ""))
                     vocab["audio_file"] = f"audio/{wav_filename}"
                     
         for idx, dia in enumerate(enriched_data.get("dialogues", [])):
@@ -84,7 +84,7 @@ class MaterialGenerator:
                 # 對話句子進行語音合成
                 wav_filename = f"dialogue_{idx}.wav"
                 wav_path = os.path.join(audio_dir, wav_filename)
-                self.tts.synthesize_sentence(hanji, wav_path)
+                self.tts.synthesize_sentence(hanji, wav_path, dia.get("tailo_numeric", ""))
                 dia["audio_file"] = f"audio/{wav_filename}"
 
         # 3.6. 產生詞彙插圖 (免費生圖 API Option B)

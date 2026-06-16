@@ -90,6 +90,54 @@ def test_tts_dummy_synthesize(tmp_path):
     assert output_file.exists()
     assert output_file.stat().st_size > 0
 
+def test_tailo_to_poj_conversion():
+    """臺羅數字調 → 白話字調符式（供本地 mms-tts-nan 使用）。"""
+    from tailo.poj import tailo_to_poj
+    cases = {
+        "tsiah8-png7": "chia̍h-pn̄g",       # 食飯：ts->ch、入聲調
+        "tshai3-tshi7-a2": "chhài-chhī-á",  # 菜市仔：tsh->chh
+        "be2-mih8-kiann7": "bé-mi̍h-kiāⁿ",  # 買物件：鼻化 -nn->ⁿ
+        "gua7-tse7-tsinn5": "gōa-chē-chîⁿ", # 偌濟錢：oa 調符在 o、鼻化
+        "thak8-tsheh4": "tha̍k-chheh",       # 讀冊
+        "kue2-tsi2": "kóe-chí",             # 果子：ue->oe 且調符在 o
+        "gua2": "góa",                      # 我：oa 調符在 o
+        "ue7": "ōe",                        # 話：oe 調符在 o
+        "kuai2": "koái",                    # oai 三母音仍標第二母音(a)
+        "kong1-hng5": "kong-hn̂g",           # 公園：無聲母韻母變化
+    }
+    for num, expect in cases.items():
+        assert tailo_to_poj(num) == expect, f"{num} -> {tailo_to_poj(num)} (期望 {expect})"
+
+
+def test_mms_provider_falls_back_without_torch(tmp_path, monkeypatch):
+    """未安裝 torch 時 mms provider 應安全降級，不得拋例外。"""
+    from tts.generator import TaigiTTS
+    tts = TaigiTTS()
+    tts.provider = "mms"
+    # 攔截降級目標，避免實際連網/ffmpeg
+    monkeypatch.setattr(tts, "_synthesize_concatenative",
+                        lambda text, out: tts._synthesize_dummy(text, out))
+    out = tmp_path / "m.wav"
+    # 有 tailo 但無 torch（測試環境未裝）→ 降級；無論如何都應產生有效檔
+    ok = tts.synthesize_sentence("食飯", str(out), "tsiah8-png7")
+    assert ok is True and out.exists() and out.stat().st_size > 0
+
+
+def test_mms_provider_requires_tailo(tmp_path, monkeypatch):
+    """mms provider 缺臺羅拼音時應改走接音合成路徑。"""
+    from tts.generator import TaigiTTS
+    tts = TaigiTTS()
+    tts.provider = "mms"
+    called = {"concat": False}
+    def fake_concat(text, out):
+        called["concat"] = True
+        return tts._synthesize_dummy(text, out)
+    monkeypatch.setattr(tts, "_synthesize_concatenative", fake_concat)
+    out = tmp_path / "m.wav"
+    tts.synthesize_sentence("食飯", str(out))  # 無 tailo_numeric
+    assert called["concat"] is True
+
+
 def test_tts_concat_segmentation(monkeypatch):
     """接音合成斷詞：最長詞優先，缺字略過（離線，mock 萌典查詢）。"""
     from tts.generator import TaigiTTS

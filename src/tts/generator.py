@@ -33,6 +33,10 @@ class TaigiTTS:
         # 接音合成用：單詞官方音檔快取（記憶體 + 磁碟），避免重複查詢萌典
         self._audio_cache_dir = os.path.join(tempfile.gettempdir(), "taigi_moedict_words")
         self._word_audio_cache: Dict[str, Optional[str]] = {}
+        # 本地 MMS TTS（facebook/mms-tts-nan）模型快取，僅在首次使用時載入
+        self.mms_model_id = self.tts_config.get("mms_model", "facebook/mms-tts-nan")
+        self._mms_model = None
+        self._mms_tokenizer = None
 
     def _load_config(self, filepath: str) -> Dict[str, Any]:
         if os.path.exists(filepath):
@@ -101,20 +105,88 @@ class TaigiTTS:
         return self._try_moedict_ogg(hanji, output_path, quiet=False)
 
     # ==================== 句子語音合成 ====================
-    def synthesize_sentence(self, text: str, output_path: str) -> bool:
+    def synthesize_sentence(self, text: str, output_path: str, tailo_numeric: str = "") -> bool:
         """
         將自訂句子進行台語語音合成並存檔。
-        支援 provider：yating（雲端 API）、concat/moedict（接音合成，串接官方單詞音檔）、dummy（靜音佔位）。
+        支援 provider：
+          - yating：雲端 API（需 api_key）
+          - concat/moedict：接音合成，串接教育部官方單詞音檔（需 ffmpeg）
+          - mms：本地 facebook/mms-tts-nan 神經網路合成（需 torch+transformers，輸入需羅馬字）
+          - dummy：靜音佔位
+        tailo_numeric：對應的臺羅數字調拼音，mms provider 需要（會轉成白話字餵入模型）。
         """
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
         if self.provider == "yating" and self.api_key:
             return self._synthesize_yating(text, output_path)
+        if self.provider == "mms":
+            return self._synthesize_mms(text, output_path, tailo_numeric)
         if self.provider in ("concat", "moedict", "moedict_concat"):
             return self._synthesize_concatenative(text, output_path)
         if self.provider == "yating":
             print("  [!] 警告: 已設定 provider 為 yating 但未提供 api_key。自動降級為 dummy 模式。")
         return self._synthesize_dummy(text, output_path)
+
+    def _synthesize_mms(self, text: str, output_path: str, tailo_numeric: str = "") -> bool:
+        """
+        本地 facebook/mms-tts-nan（VITS）語音合成。模型以白話字語料訓練，故先將臺羅數字調
+        轉為白話字調符式再餵入。未安裝 torch/transformers，或缺臺羅拼音時，降級為接音合成。
+
+        ⚠️ 授權：facebook/mms-tts-nan 為 CC-BY-NC 4.0（限非商業用途）。
+        ⚠️ 安裝量大（torch ~2GB），建議裝在非雲端同步路徑的 venv。
+        """
+        if not tailo_numeric:
+            print("  [!] mms provider 需要臺羅拼音 (tailo_numeric) 才能合成，改用接音合成。")
+            return self._synthesize_concatenative(text, output_path)
+
+        try:
+            import torch  # noqa: F401
+            from transformers import VitsModel, AutoTokenizer
+        except ImportError:
+            print("  [!] 未安裝 torch/transformers，無法使用本地 mms TTS，改用接音合成。")
+            print("      安裝方式（建議在非 Drive 路徑的 venv）：pip install torch transformers")
+            return self._synthesize_concatenative(text, output_path)
+
+        try:
+            from tailo.poj import tailo_to_poj
+        except ImportError:
+            sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from tailo.poj import tailo_to_poj
+
+        try:
+            poj = tailo_to_poj(tailo_numeric)
+            print(f"[*] 本地 MMS 合成（{self.mms_model_id}）：臺羅「{tailo_numeric}」→ 白話字「{poj}」")
+
+            # 模型僅在首次使用時載入並快取重用
+            if self._mms_model is None:
+                import torch
+                print(f"  [*] 首次載入 MMS 模型 {self.mms_model_id}（CPU）...")
+                self._mms_model = VitsModel.from_pretrained(self.mms_model_id)
+                self._mms_tokenizer = AutoTokenizer.from_pretrained(self.mms_model_id)
+                self._mms_model.eval()
+
+            import torch
+            inputs = self._mms_tokenizer(poj, return_tensors="pt")
+            with torch.no_grad():
+                waveform = self._mms_model(**inputs).waveform  # shape [1, n]
+            samples = waveform[0].cpu().numpy()
+
+            # 轉為 16-bit PCM 並以標準庫 wave 寫出（免 scipy 依賴）
+            import wave
+            import numpy as np
+            pcm = np.clip(samples, -1.0, 1.0)
+            pcm = (pcm * 32767.0).astype("<i2")
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            with wave.open(output_path, "wb") as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(int(self._mms_model.config.sampling_rate))
+                wf.writeframes(pcm.tobytes())
+            print(f"  [+] 本地 MMS 合成完成：{output_path}")
+            return True
+        except Exception as e:
+            print(f"  [-] 本地 MMS 合成失敗（{e}），改用接音合成。")
+            return self._synthesize_concatenative(text, output_path)
 
     def _get_word_audio(self, word: str) -> Optional[str]:
         """

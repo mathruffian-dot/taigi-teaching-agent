@@ -12,3 +12,9 @@ httpx>=0.27.0
 
 # 本地語音辨識引擎 (STT whisper 模式核心；缺少時會默默降級為 dummy)
 faster-whisper>=1.0.0
+
+# 選用：本地 TTS（tts.provider="mms"，facebook/mms-tts-nan）。安裝量大(~2GB)，
+# 建議裝在非雲端同步路徑的 venv；未安裝時 mms provider 會自動降級為接音合成。
+# pip install torch transformers
+# torch>=2.2
+# transformers>=4.40

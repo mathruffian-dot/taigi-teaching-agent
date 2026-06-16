@@ -16,6 +16,7 @@ from rag.retriever import TaigiRetriever
 from tailo.validator import convert_sentence_numeric_to_diacritic
 from tts.generator import TaigiTTS
 from generators.image_generator import FreeImageGenerator
+from agent.content_checker import check_lesson_content
 
 class MaterialGenerator:
     def __init__(self, config_path: str = "config.json"):
@@ -53,6 +54,15 @@ class MaterialGenerator:
         for dia in enriched_data.get("dialogues", []):
             if dia.get("tailo_numeric"):
                 dia["tailo_diacritic"] = convert_sentence_numeric_to_diacritic(dia["tailo_numeric"])
+
+        # 3.1. 內容自動檢核（標記華語用字、漢字/臺羅音節不符等，供教師審核）
+        content_warnings = check_lesson_content(enriched_data)
+        if content_warnings:
+            print(f"[!] 內容檢核發現 {len(content_warnings)} 項待確認（已寫入教師審核報告）：")
+            for w in content_warnings:
+                print(f"    ⚠️ {w}")
+        else:
+            print("[*] 內容檢核通過，未發現明顯用字/拼音問題。")
 
         # 3.5. 產生語音音訊檔 (詞彙下載與對話合成)
         print("[*] 執行語音生成與下載...")
@@ -361,7 +371,19 @@ class MaterialGenerator:
         report_lines.append("### 對話拼音聲調審查 (Dialogue Tone Review)")
         for dia in data.get("dialogues", []):
             report_lines.append(f"- **{dia.get('role')}**：{dia.get('hanji')} -> **待試聽音檔並校對**")
-            
+
+        # 自動內容檢核結果（華語用字、漢字/臺羅音節一致性）
+        report_lines.append("")
+        report_lines.append("## 2. 內容自動檢核 (Automated Content Check)")
+        warnings = check_lesson_content(data)
+        if warnings:
+            report_lines.append(f"系統偵測到 {len(warnings)} 項待教師確認事項（僅為提醒，未自動更改）：")
+            report_lines.append("")
+            for w in warnings:
+                report_lines.append(f"- ⚠️ {w}")
+        else:
+            report_lines.append("✅ 未發現明顯華語夾雜或漢字/臺羅音節不符問題。")
+
         report_path = os.path.join(output_dir, "teacher_review_report.md")
         with open(report_path, "w", encoding="utf-8") as f:
             f.write("\n".join(report_lines))

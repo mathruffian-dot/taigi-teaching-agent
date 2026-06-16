@@ -90,6 +90,27 @@ def test_tts_dummy_synthesize(tmp_path):
     assert output_file.exists()
     assert output_file.stat().st_size > 0
 
+def test_content_checker_flags_and_passes():
+    """內容檢核：壞資料應被標記，修正後的 Mock 課文應零警告。"""
+    from agent.content_checker import check_lesson_content
+    bad = {
+        "vocabulary": [{"hanji": "老闆"}],
+        "dialogues": [{"hanji": "你欲去買一些物件嗎？", "tailo_numeric": "li2 beh4 khi3"}],
+    }
+    warns = check_lesson_content(bad)
+    joined = " ".join(warns)
+    assert any("老闆" in w for w in warns)      # 華語用字
+    assert any("一些" in w for w in warns)
+    assert "音節" in joined                       # 漢字/臺羅音節數不符
+
+    # 修正後的 Mock（菜市分支）應無警告
+    from agent.outline_generator import TaigiOutlineGenerator
+    gen = TaigiOutlineGenerator()
+    gen._get_available_models = lambda: []
+    outline = gen.generate_outline("去菜市仔買物件", "國中七年級")
+    assert check_lesson_content(outline) == []
+
+
 def test_tailo_to_poj_conversion():
     """臺羅數字調 → 白話字調符式（供本地 mms-tts-nan 使用）。"""
     from tailo.poj import tailo_to_poj

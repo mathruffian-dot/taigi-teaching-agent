@@ -303,7 +303,15 @@ class MaterialGenerator:
         
     def _generate_html(self, data: Dict[str, Any], output_dir: str):
         # 製作帶有 Flashcard, Dialogue translation toggle, Interactive quiz, Timer, Randomizer 的高級 HTML
-        
+
+        def js_str(s: Any) -> str:
+            # 轉義字串以安全嵌入單引號 JS 字串字面值（避免漢字／翻譯內含 ' 或 \\ 破壞 onclick）
+            return (str(s or "")
+                    .replace("\\", "\\\\")
+                    .replace("'", "\\'")
+                    .replace("\n", " ")
+                    .replace("\r", " "))
+
         # 1. 建立單字卡 HTML (支援 CSS 3D 翻轉)
         vocab_cards_html = ""
         for idx, vocab in enumerate(data.get("vocabulary", [])):
@@ -319,7 +327,7 @@ class MaterialGenerator:
                 <div class="card-front">
                   <div class="card-header">
                     <span class="badge">詞彙 {idx+1}</span>
-                    <button class="speaker-btn" onclick="speakText(event, '{vocab.get('hanji')}', '{vocab.get('audio_file', '')}')">🔊</button>
+                    <button class="speaker-btn" onclick="speakText(event, '{js_str(vocab.get('hanji'))}', '{js_str(vocab.get('audio_file', ''))}')">🔊</button>
                   </div>
                   {image_html}
                   <div class="hanji-display">{vocab.get('hanji')}</div>
@@ -331,7 +339,7 @@ class MaterialGenerator:
                   <div class="back-title">華語翻譯</div>
                   <div class="translation-display">{vocab.get('zh_tw')}</div>
                   <div class="speaking-section">
-                    <button class="mic-btn" id="mic-vocab-{idx}" onclick="toggleRecording(event, 'vocab', {idx}, '{vocab.get('hanji')}')">🎤 錄音練習</button>
+                    <button class="mic-btn" id="mic-vocab-{idx}" onclick="toggleRecording(event, 'vocab', {idx}, '{js_str(vocab.get('hanji'))}')">🎤 錄音練習</button>
                     <div class="speaking-status" id="status-vocab-{idx}"></div>
                     <div class="evaluation-result" id="result-vocab-{idx}"></div>
                   </div>
@@ -354,9 +362,9 @@ class MaterialGenerator:
                 <div class="dialogue-sentence">
                   {dia.get('hanji')}
                   <span class="bubble-audio-btns" onclick="event.stopPropagation()">
-                    <button class="bubble-audio-btn" onclick="playDialogue(event, '{dia.get('audio_file', '')}', 1.0)">▶️ 正常</button>
-                    <button class="bubble-audio-btn slow" onclick="playDialogue(event, '{dia.get('audio_file', '')}', 0.75)">🐌 慢速</button>
-                    <button class="bubble-audio-btn mic" id="mic-dialogue-{idx}" onclick="toggleRecording(event, 'dialogue', {idx}, '{dia.get('hanji')}')">🎤 練習</button>
+                    <button class="bubble-audio-btn" onclick="playDialogue(event, '{js_str(dia.get('audio_file', ''))}', 1.0)">▶️ 正常</button>
+                    <button class="bubble-audio-btn slow" onclick="playDialogue(event, '{js_str(dia.get('audio_file', ''))}', 0.75)">🐌 慢速</button>
+                    <button class="bubble-audio-btn mic" id="mic-dialogue-{idx}" onclick="toggleRecording(event, 'dialogue', {idx}, '{js_str(dia.get('hanji'))}')">🎤 練習</button>
                   </span>
                 </div>
                 <div class="dialogue-tailo">{dia.get('tailo_diacritic')}</div>

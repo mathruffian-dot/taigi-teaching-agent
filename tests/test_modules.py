@@ -68,6 +68,7 @@ def test_enrichment():
     assert len(enriched["curriculum"]["learning_performance"]) > 0
     assert any("1-Ⅳ-1" in x for x in enriched["curriculum"]["learning_performance"])
 
+@pytest.mark.network
 def test_tts_fetch_moedict(tmp_path):
     from tts.generator import TaigiTTS
     tts = TaigiTTS()
@@ -259,6 +260,7 @@ def test_video_generator_basic():
     # 測試時長獲取預設值
     assert gen.get_audio_duration("") == 3.0
 
+@pytest.mark.network
 def test_stt_local_whisper_integration(tmp_path):
     from stt.generator import TaigiSTT
     stt = TaigiSTT()
@@ -441,6 +443,44 @@ def test_html_handles_empty_role(tmp_path):
     }
     gen._generate_html(data, str(tmp_path))  # 不應拋例外
     assert (tmp_path / "interactive_website.html").exists()
+
+
+def test_vocabulary_db_tailo_consistency():
+    """資料完整性：詞庫每筆 tailo_numeric 經轉換後，應與 tailo_diacritic 完全一致。
+    （曾出現「偌濟錢」numeric 標 tsinn2 但 diacritic 為 tsînn 的不一致，會被反推覆蓋成錯誤聲調。）"""
+    from rag.retriever import TaigiRetriever
+    from tailo.validator import convert_sentence_numeric_to_diacritic
+    retriever = TaigiRetriever()
+
+    mismatches = []
+    for entry in retriever.vocabulary_db:
+        num = entry.get("tailo_numeric", "")
+        dia = entry.get("tailo_diacritic", "")
+        if not num or not dia:
+            continue
+        converted = convert_sentence_numeric_to_diacritic(num)
+        if converted != dia:
+            mismatches.append(f"{entry.get('hanji')}: {num} -> {converted} (期望 {dia})")
+
+    assert not mismatches, "詞庫拼音不一致:\n" + "\n".join(mismatches)
+
+
+def test_html_onclick_escapes_apostrophe(tmp_path):
+    """漢字／音檔路徑含單引號時，不可破壞 onclick 的 JS 字串字面值。"""
+    from generators.material_generator import MaterialGenerator
+    gen = MaterialGenerator()
+    data = {
+        "title": "測試", "grade": "國中七年級", "duration_minutes": 45,
+        "curriculum": {"learning_performance": [], "learning_content": []},
+        "vocabulary": [{"hanji": "O'brien's 詞", "tailo_diacritic": "test",
+                        "zh_tw": "測試", "audio_file": "", "image_file": ""}],
+        "dialogues": [],
+        "questions": []
+    }
+    gen._generate_html(data, str(tmp_path))
+    html = (tmp_path / "interactive_website.html").read_text(encoding="utf-8")
+    # 單引號必須被轉義成 \' 後嵌入，不可出現未轉義的破壞型片段
+    assert "O\\'brien\\'s" in html
 
 
 def test_vocabulary_db_expanded():

@@ -33,6 +33,9 @@ class TaigiTTS:
         # 接音合成用：單詞官方音檔快取（記憶體 + 磁碟），避免重複查詢萌典
         self._audio_cache_dir = os.path.join(tempfile.gettempdir(), "taigi_moedict_words")
         self._word_audio_cache: Dict[str, Optional[str]] = {}
+        # 接音合成詞間靜音秒數（可調，越小越緊湊）；是否修剪單詞音檔頭尾靜音
+        self.concat_gap_sec = float(self.tts_config.get("concat_gap_sec", 0.06))
+        self.concat_trim_silence = bool(self.tts_config.get("concat_trim_silence", True))
         # 本地 MMS TTS（facebook/mms-tts-nan）模型快取，僅在首次使用時載入
         self.mms_model_id = self.tts_config.get("mms_model", "facebook/mms-tts-nan")
         self._mms_model = None
@@ -256,14 +259,22 @@ class TaigiTTS:
 
         tmp_dir = tempfile.mkdtemp(prefix="taigi_concat_")
         try:
-            # 2. 將每個單詞音檔正規化為 22050Hz 單聲道 wav
+            # 2. 將每個單詞音檔正規化為 22050Hz 單聲道 wav；可選修剪頭尾靜音以縮短停頓
             norm_paths: List[str] = []
+            # silenceremove：修掉開頭與結尾低於 -45dB 的靜音（保留語音本體）
+            af = ("silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0:"
+                  "stop_periods=1:stop_threshold=-45dB:stop_silence=0.02:detection=peak")
             for idx, p in enumerate(word_paths):
                 w = os.path.join(tmp_dir, f"w{idx:03d}.wav")
-                subprocess.run(
-                    ["ffmpeg", "-y", "-i", p, "-ar", "22050", "-ac", "1", w],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                )
+                cmd = ["ffmpeg", "-y", "-i", p, "-ar", "22050", "-ac", "1"]
+                if self.concat_trim_silence:
+                    cmd += ["-af", af]
+                cmd.append(w)
+                subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                # 修剪後若意外變空，退回不修剪版本，避免整詞消失
+                if (not os.path.exists(w) or os.path.getsize(w) < 1024) and self.concat_trim_silence:
+                    subprocess.run(["ffmpeg", "-y", "-i", p, "-ar", "22050", "-ac", "1", w],
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 if os.path.exists(w) and os.path.getsize(w) > 0:
                     norm_paths.append(w)
 
@@ -271,19 +282,21 @@ class TaigiTTS:
                 print("  [-] 單詞音檔轉檔皆失敗，降級為 dummy 模式。")
                 return self._synthesize_dummy(text, output_path)
 
-            # 3. 產生詞間 0.12 秒靜音作為自然停頓
-            silence = os.path.join(tmp_dir, "sil.wav")
-            subprocess.run(
-                ["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=22050:cl=mono",
-                 "-t", "0.12", silence],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            )
+            # 3. 產生詞間靜音作為自然停頓（秒數可由 concat_gap_sec 設定）
+            silence = None
+            if self.concat_gap_sec > 0:
+                silence = os.path.join(tmp_dir, "sil.wav")
+                subprocess.run(
+                    ["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=22050:cl=mono",
+                     "-t", f"{self.concat_gap_sec:.3f}", silence],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                )
 
             # 4. 串接（concat demuxer，詞與詞之間插入靜音）
             list_path = os.path.join(tmp_dir, "list.txt")
             with open(list_path, "w", encoding="utf-8") as f:
                 for idx, w in enumerate(norm_paths):
-                    if idx > 0 and os.path.exists(silence):
+                    if idx > 0 and silence and os.path.exists(silence):
                         f.write(f"file '{silence.replace(chr(92), '/')}'\n")
                     f.write(f"file '{w.replace(chr(92), '/')}'\n")
 

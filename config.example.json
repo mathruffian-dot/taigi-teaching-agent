@@ -16,7 +16,7 @@
     "provider": "concat",
     "mms_model": "facebook/mms-tts-nan",
     "concat_gap_sec": 0.06,
-    "concat_trim_silence": true,
+    "concat_trim_silence": false,
     "api_key": ""
   },
   "stt": {

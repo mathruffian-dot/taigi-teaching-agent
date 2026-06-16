@@ -33,9 +33,11 @@ class TaigiTTS:
         # 接音合成用：單詞官方音檔快取（記憶體 + 磁碟），避免重複查詢萌典
         self._audio_cache_dir = os.path.join(tempfile.gettempdir(), "taigi_moedict_words")
         self._word_audio_cache: Dict[str, Optional[str]] = {}
-        # 接音合成詞間靜音秒數（可調，越小越緊湊）；是否修剪單詞音檔頭尾靜音
+        # 接音合成詞間靜音秒數（可調，越小越緊湊）。
         self.concat_gap_sec = float(self.tts_config.get("concat_gap_sec", 0.06))
-        self.concat_trim_silence = bool(self.tts_config.get("concat_trim_silence", True))
+        # 是否修剪單詞音檔頭尾靜音：預設關閉。修剪會削掉入聲(-p/-t/-k/-h)等較弱字尾、
+        # 破壞發音，僅在確認無副作用時才開。
+        self.concat_trim_silence = bool(self.tts_config.get("concat_trim_silence", False))
         # 本地 MMS TTS（facebook/mms-tts-nan）模型快取，僅在首次使用時載入
         self.mms_model_id = self.tts_config.get("mms_model", "facebook/mms-tts-nan")
         self._mms_model = None

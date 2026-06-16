@@ -317,21 +317,21 @@ JSON Schema：
                     },
                     {
                         "role": "阿媽",
-                        "hanji": "有啊，咱欲來去買一些魚仔、肉跟菜，順便買你愛食的麵包。",
-                        "tailo_numeric": "u7-a2, lan2 beh4 lai5-khi3 be2 tsit-khua2 hi5-a2, bah kap tshai3, sun7-pien7 be2 li2 ai3 tsiah8 e5 mian7-pao1.",
+                        "hanji": "有啊，咱欲來去買一寡魚仔、肉佮菜，順便買你愛食的麵包。",
+                        "tailo_numeric": "u7-a2, lan2 beh4 lai5-khi3 be2 tsit8-kua2 hi5-a2, bah4 kah4 tshai3, sun7-pian7 be2 li2 ai3 tsiah8 e5 mi7-pau1.",
                         "zh_tw": "有啊，我們要來去買一些魚、肉和菜，順便買你愛吃的麵包。"
                     },
                     {
                         "role": "阿偉",
                         "hanji": "阿媽，這个魚仔一斤偌濟錢？",
-                        "tailo_numeric": "a1-ma2, tsit-e5 hi5-a2 tsit-kin1 gua7-tse7-tsinn2?",
+                        "tailo_numeric": "a1-ma2, tsit8-e5 hi5-a2 tsit8-kin1 gua7-tse7-tsinn5?",
                         "zh_tw": "阿嬤，這個魚一斤多少錢？"
                     },
                     {
                         "role": "阿媽",
-                        "hanji": "一斤兩百塊，多謝老闆。",
-                        "tailo_numeric": "tsit-kin1 nn7-pah-khoo1, to1-sia7 lau7-pan7.",
-                        "zh_tw": "一斤兩百元，多謝老闆。"
+                        "hanji": "一斤兩百箍，多謝頭家。",
+                        "tailo_numeric": "tsit8-kin1 nng7-pah4-khoo1, to1-sia7 thau5-ke1.",
+                        "zh_tw": "一斤兩百元，謝謝老闆。"
                     }
                 ],
                 "questions": [
@@ -361,7 +361,7 @@ JSON Schema：
                     },
                     {
                         "id": "q3",
-                        "question": "阿媽說「一斤兩百塊」，「兩百塊」的台語數字拼音怎麼寫？",
+                        "question": "阿媽說「一斤兩百箍」，「兩百」的台語數字拼音怎麼寫？",
                         "options": [
                             "tsit-kin1 (一斤)",
                             "nn̄g-pah (兩百)",
@@ -369,7 +369,7 @@ JSON Schema：
                             "saⁿ-pah (三百)"
                         ],
                         "answer_index": 1,
-                        "explanation": "「兩百」的台語發音為 nn̄g-pah (聲調為 nn7-pah4)。"
+                        "explanation": "「兩百」的台語發音為 nn̄g-pah (聲調為 nng7-pah4)。"
                     }
                 ]
             }
@@ -384,13 +384,13 @@ JSON Schema：
                     {
                         "role": "老師",
                         "hanji": "學生，咱準備欲來食飯無？",
-                        "tailo_numeric": "hak8-sing1, lan2 tshun2-pi7 beh4 lai5 tsiah8-png7 bo5?",
+                        "tailo_numeric": "hak8-sing1, lan2 tsun2-pi7 beh4 lai5 tsiah8-png7 bo5?",
                         "zh_tw": "學生，我們準備要來吃飯了嗎？"
                     },
                     {
                         "role": "學生",
                         "hanji": "有啊，我腹肚真枵，多謝老師！",
-                        "tailo_numeric": "u7-a2, gua2 pak8-too2 tsin1 iau1, to1-sia7 lau7-si1!",
+                        "tailo_numeric": "u7-a2, gua2 pak4-too2 tsin1 iau1, to1-sia7 lau7-su1!",
                         "zh_tw": "有啊，我肚子很餓，多謝老師！"
                     },
                     {
@@ -417,7 +417,7 @@ JSON Schema：
                         "id": "q2",
                         "question": "學生說他很餓，「肚子餓」的台語怎麼寫？",
                         "options": [
-                            "腹肚真枵 (pak8-too2 tsin1 iau1)",
+                            "腹肚真枵 (pak4-too2 tsin1 iau1)",
                             "食飽 (tsiah8-pa2)",
                             "讀冊 (thak8-tsheh4)",
                             "多謝 (to1-sia7)"

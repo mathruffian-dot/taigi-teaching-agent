@@ -31,9 +31,14 @@ class MaterialGenerator:
                 return json.load(f)
         return {}
 
-    def generate_all(self, case_path: str, output_dir: str = "output"):
+    def generate_all(self, case_path: str, output_dir: str = None):
+        # 輸出目錄優先序：呼叫參數 > config 的 output.base_dir > 預設 "output"
+        # 大型產出（音訊/影片）建議透過 config 指向本機目錄，避免雲端硬碟同步失敗。
+        if output_dir is None:
+            output_dir = self.config.get("output", {}).get("base_dir", "output")
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
+        print(f"[*] 輸出目錄: {output_dir}")
 
         # 1. 讀取輸入測試案例
         with open(case_path, "r", encoding="utf-8") as f:
@@ -393,7 +398,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config.json")
     parser.add_argument("--case", required=True)
+    parser.add_argument("--output", default=None,
+                        help="輸出目錄；未指定時讀 config 的 output.base_dir，再退回 \"output\"")
     args = parser.parse_args()
-    
+
     generator = MaterialGenerator(args.config)
-    generator.generate_all(args.case)
+    generator.generate_all(args.case, output_dir=args.output)

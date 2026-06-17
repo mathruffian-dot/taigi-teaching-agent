@@ -65,6 +65,19 @@
   # 執行教材生成主程式 (需提供測試案例路徑)
   .venv\Scripts\python src/generators/material_generator.py --case <測試案例路徑>
   ```
+- **安裝臺語文字模型**（Ollama；首次或換電腦時）：
+  ```powershell
+  # 下載官方 GGUF 後別名為 config 指定的模型名
+  ollama pull hf.co/Speech-AI-Research-Center/SARC-Taigi-LLM-12b-GGUF:Q4_K_M
+  ollama cp hf.co/Speech-AI-Research-Center/SARC-Taigi-LLM-12b-GGUF:Q4_K_M SARC-Taigi-LLM-12b:latest
+  ```
+  > 模型存於本機 `~/.ollama/models`（非雲端）。找不到時程式會自動退用 gemma/qwen。
+
+### ⚠️ 大型產出存放位置（雲端硬碟限制）
+- 音訊／影片／圖片等大檔**不存雲端硬碟**，改存本機目錄，避免 Google Drive 同步上萬大檔失敗。
+- 路徑由 `config.json` 的 `output.base_dir` 指定（預設本機 `C:\Users\<你>\2026本土語\output`）。
+- 未設定時退回專案內 `output/`（已被 `.gitignore` 排除）。
+- 亦可用 `--output <目錄>` 於執行時覆寫。
 
 ---
 

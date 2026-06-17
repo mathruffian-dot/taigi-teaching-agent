@@ -11,6 +11,10 @@
     "owner": "mathruffian-dot",
     "repo": "taigi-teaching-agent"
   },
+  "output": {
+    "_comment": "大型產出（音訊/影片/圖片）建議改存本機目錄，避免 Google Drive 同步大量大檔失敗。未設定時預設為專案內的 \"output\"。範例：\"C:\\\\Users\\\\<你>\\\\2026本土語\\\\output\"",
+    "base_dir": "output"
+  },
   "tts": {
     "_comment": "provider 可選：concat（接音合成，串接教育部官方單詞音檔，需 ffmpeg，推薦）／mms（本地 facebook/mms-tts-nan 神經合成，需 torch+transformers，CC-BY-NC 限非商業）／yating（雲端 API，需 api_key）／dummy（靜音佔位）",
     "provider": "concat",

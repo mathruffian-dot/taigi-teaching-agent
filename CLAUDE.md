@@ -44,6 +44,7 @@
    - `Taiwan-Tongues-ASR-CE` (多語混合)
 3. **語音合成 (TTS)**：串接 Taigi AI Labs 或 ATEN AI Voice 等展示服務進行第一階段驗證。
 4. **漢字/臺羅檢核**：結合教育部常用詞辭典進行 Unicode 正規化、拼音檢查。
+5. **教學影片**：一律採 **Hyperframe（HyperFrames）方式**製作（HTML 動畫 → Playwright 錄影 → ffmpeg 合成 mp4，旁白用 Edge-TTS），**不使用** `teaching-cockpit` / `lesson-prep` 的 NotebookLM 影片技能。規範來源：<https://github.com/mathruffian-dot/claude-video-specs-lite>；專案落地說明見 `docs/教學影片-hyperframe.md`。
 
 ---
 

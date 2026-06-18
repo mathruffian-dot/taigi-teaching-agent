@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<title>拍招呼——台語的好禮數</title>
+<style>
+@font-face{font-family:'GenSeki TW';src:url('assets/fonts/GenSekiGothic2TW-H.otf') format('opentype');font-weight:900;font-display:block;}
+@font-face{font-family:'GenSeki TW';src:url('assets/fonts/GenSekiGothic2TW-B.otf') format('opentype');font-weight:700;font-display:block;}
+@font-face{font-family:'GenSeki TW';src:url('assets/fonts/GenSekiGothic2TW-M.otf') format('opentype');font-weight:500;font-display:block;}
+
+:root{
+  --paper:#FAF7EE; --paper2:#F2EDDC; --ink:#1A1A1A;
+  --teal:#0E7C7B; --coral:#E36414; --gold:#C8941F;
+  --fs-hero:220px; --fs-title:130px; --fs-sub:90px; --fs-body:56px; --fs-note:30px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#000;
+  font-family:'GenSeki TW',sans-serif;-webkit-font-smoothing:antialiased;}
+.stage{position:relative;width:1920px;height:1080px;}
+
+.slide{position:absolute;inset:0;opacity:0;visibility:hidden;
+  transition:opacity .5s ease;background:var(--paper);
+  padding:56px 80px 120px;display:flex;flex-direction:column;}
+.slide.active{opacity:1;visibility:visible;}
+.slide.dark{background:var(--ink);color:var(--paper);}
+
+/* 章節 chip */
+.chip{position:absolute;top:48px;left:80px;font-weight:700;font-size:var(--fs-note);color:var(--ink);}
+.chip b{background:var(--teal);color:#fff;padding:4px 16px;border-radius:6px;margin-right:14px;}
+.dark .chip{color:var(--paper);}
+
+/* 進度條 */
+#bar{position:absolute;bottom:0;left:0;height:6px;background:var(--teal);width:0;z-index:50;transition:width .3s linear;}
+
+/* 字幕條 */
+#sub{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);max-width:88%;
+  background:rgba(26,26,26,.92);color:#fff;font-weight:700;font-size:34px;
+  padding:12px 30px;border-radius:10px;text-align:center;opacity:0;transition:opacity .3s;z-index:40;
+  letter-spacing:1px;}
+#sub.show{opacity:1;}
+
+/* 通用 */
+.center{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;}
+.hero{font-weight:900;font-size:var(--fs-hero);line-height:1.05;}
+.title{font-weight:900;font-size:var(--fs-title);line-height:1.1;}
+.romaji{font-weight:700;font-size:var(--fs-sub);color:var(--teal);letter-spacing:2px;margin-top:8px;}
+.gloss{font-weight:500;font-size:var(--fs-body);color:#555;margin-top:18px;}
+.teal{color:var(--teal);} .coral{color:var(--coral);}
+
+/* 揭露動畫：active 後依 data-d 階層浮現 */
+.rise{opacity:0;transform:translateY(40px);transition:opacity .7s ease,transform .7s ease;}
+.active .rise{opacity:1;transform:translateY(0);}
+.active .rise[data-d="1"]{transition-delay:.3s;}
+.active .rise[data-d="2"]{transition-delay:.9s;}
+.active .rise[data-d="3"]{transition-delay:1.6s;}
+.active .rise[data-d="4"]{transition-delay:2.3s;}
+.active .rise[data-d="5"]{transition-delay:3.0s;}
+.pop{opacity:0;transform:scale(.5);transition:opacity .5s,transform .5s cubic-bezier(.34,1.56,.64,1);}
+.active .pop{opacity:1;transform:scale(1);}
+
+/* 詞卡 */
+.card{background:var(--paper2);border-radius:28px;padding:48px 64px;margin:18px;
+  box-shadow:0 8px 0 rgba(0,0,0,.06);min-width:560px;}
+.cardrow{display:flex;justify-content:center;flex-wrap:wrap;}
+
+/* 場景 icon 列（P2）*/
+.scenes{display:flex;gap:60px;font-size:120px;}
+.scenes div{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.scenes span{font-size:40px;font-weight:700;color:var(--ink);}
+
+/* 對話（P7）*/
+.line{display:flex;align-items:center;gap:28px;margin:18px 0;font-size:64px;font-weight:700;}
+.line .who{font-size:40px;font-weight:900;color:#fff;background:var(--teal);border-radius:50%;width:84px;height:84px;
+  display:flex;align-items:center;justify-content:center;flex:0 0 84px;}
+.line.b .who{background:var(--coral);}
+.line .rj{font-size:38px;color:var(--teal);font-weight:700;margin-left:12px;}
+
+/* 知識地圖（P8 ★）*/
+.map{position:relative;width:1400px;height:680px;}
+.map .hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  background:var(--ink);color:#fff;border-radius:50%;width:260px;height:260px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:3;}
+.map .hub b{font-size:64px;font-weight:900;} .map .hub i{font-size:30px;font-style:normal;color:var(--gold);}
+.node{position:absolute;background:var(--paper2);border:5px solid var(--teal);border-radius:22px;
+  padding:22px 34px;text-align:center;z-index:3;}
+.node b{font-size:54px;font-weight:900;color:var(--ink);display:block;}
+.node i{font-size:30px;font-style:normal;color:var(--coral);font-weight:700;}
+.n1{left:60px;top:40px;} .n2{right:60px;top:40px;} .n3{left:60px;bottom:40px;} .n4{right:60px;bottom:40px;}
+svg.lines{position:absolute;inset:0;width:100%;height:100%;z-index:1;}
+svg.lines path{stroke:var(--teal);stroke-width:6;fill:none;stroke-dasharray:1200;stroke-dashoffset:1200;
+  transition:stroke-dashoffset 1s ease;}
+.active .map svg.lines path{stroke-dashoffset:0;}
+.active .map svg.lines path[data-d="2"]{transition-delay:.2s;}
+.active .map svg.lines path[data-d="3"]{transition-delay:.4s;}
+.active .map svg.lines path[data-d="4"]{transition-delay:.6s;}
+
+/* 起始遮罩 */
+#startScreen{position:absolute;inset:0;background:var(--ink);color:var(--paper);z-index:100;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;}
+#startScreen .hero{font-size:160px;}
+#startScreen p{font-size:40px;color:var(--gold);margin-top:30px;}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+
+  <!-- 1 封面 -->
+  <section class="slide dark" data-i="1">
+    <div class="chip"><b>01</b> / 09 — 開場</div>
+    <div class="center">
+      <div class="hero rise" data-d="1">拍招呼</div>
+      <div class="romaji rise" data-d="2" style="color:var(--gold);font-size:70px">phah-tsio-hoo</div>
+      <div class="gloss rise" data-d="3" style="color:var(--paper);font-size:64px;margin-top:40px">台語的好禮數</div>
+    </div>
+  </section>
+
+  <!-- 2 引起動機 -->
+  <section class="slide" data-i="2">
+    <div class="chip"><b>02</b> / 09 — 一工的招呼</div>
+    <div class="center">
+      <div class="title rise" data-d="1">一工內底，<span class="teal">規工</span>攏咧拍招呼</div>
+      <div class="scenes" style="margin-top:70px">
+        <div class="pop" style="transition-delay:.6s">🌅<span>早起</span></div>
+        <div class="pop" style="transition-delay:1.2s">🏫<span>學校</span></div>
+        <div class="pop" style="transition-delay:1.8s">🛒<span>市場</span></div>
+        <div class="pop" style="transition-delay:2.4s">🌙<span>暗時</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 相見 -->
+  <section class="slide" data-i="3">
+    <div class="chip"><b>03</b> / 09 — 相見</div>
+    <div class="center">
+      <div class="gloss rise" data-d="1" style="margin:0 0 30px">天光相見，按呢講 ——</div>
+      <div class="cardrow">
+        <div class="card rise" data-d="2"><div class="title teal">逐家</div><div class="romaji">ta̍k-ke</div><div class="gloss">大家</div></div>
+        <div class="card rise" data-d="3"><div class="title teal">早起</div><div class="romaji">tsá-khí</div><div class="gloss">早安</div></div>
+      </div>
+      <div class="title coral rise" data-d="4" style="margin-top:30px">「逐家早起！」</div>
+    </div>
+  </section>
+
+  <!-- 4 說多謝 -->
+  <section class="slide" data-i="4">
+    <div class="chip"><b>04</b> / 09 — 說多謝</div>
+    <div class="center">
+      <div class="gloss rise" data-d="1" style="margin:0 0 30px">別人鬥相共，愛說多謝 ——</div>
+      <div class="cardrow">
+        <div class="card rise" data-d="2"><div class="title teal">多謝</div><div class="romaji">to-siā</div><div class="gloss">謝謝</div></div>
+        <div class="card rise" data-d="3"><div class="title teal">勞力</div><div class="romaji">lóo-la̍t</div><div class="gloss">感謝（更鄭重）</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 會失禮 -->
+  <section class="slide" data-i="5">
+    <div class="chip"><b>05</b> / 09 — 會失禮</div>
+    <div class="center">
+      <div class="gloss rise" data-d="1" style="margin:0 0 24px">做毋著代誌，愛會失禮 ——</div>
+      <div class="cardrow">
+        <div class="card rise" data-d="2"><div class="title teal">歹勢</div><div class="romaji">pháinn-sè</div><div class="gloss">不好意思</div></div>
+        <div class="card rise" data-d="3"><div class="title teal">失禮</div><div class="romaji">sit-lé</div><div class="gloss">對不起</div></div>
+      </div>
+      <div class="rise" data-d="4" style="margin-top:30px;font-size:50px;font-weight:700">
+        對方應你：<span class="coral">無要緊</span> <span style="color:var(--teal);font-size:38px">bô iàu-kín</span>（沒關係）
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 相辭 -->
+  <section class="slide" data-i="6">
+    <div class="chip"><b>06</b> / 09 — 相辭</div>
+    <div class="center">
+      <div class="gloss rise" data-d="1" style="margin:0 0 30px">欲走的時陣，按呢相辭 ——</div>
+      <div class="cardrow">
+        <div class="card rise" data-d="2"><div class="title teal">再會</div><div class="romaji">tsài-huē</div><div class="gloss">再見</div></div>
+        <div class="card rise" data-d="3"><div class="title teal">明仔載</div><div class="romaji">bîn-á-tsài</div><div class="gloss">明天（見）</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 對話練習 -->
+  <section class="slide" data-i="7">
+    <div class="chip"><b>07</b> / 09 — 鬥做對話</div>
+    <div class="center">
+      <div class="title rise" data-d="1" style="font-size:90px;margin-bottom:40px">這馬來練習</div>
+      <div style="text-align:left">
+        <div class="line rise" data-d="2"><div class="who">A</div><div>逐家早起！<span class="rj">ta̍k-ke tsá-khí</span></div></div>
+        <div class="line b rise" data-d="3"><div class="who">B</div><div>早！多謝你<span class="rj">tsá! to-siā lí</span></div></div>
+        <div class="line rise" data-d="4"><div class="who">A</div><div>免客氣，再會！<span class="rj">tsài-huē</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 知識地圖 ★ -->
+  <section class="slide" data-i="8">
+    <div class="chip"><b>08</b> / 09 — 招呼地圖</div>
+    <div class="center">
+      <div class="map">
+        <svg class="lines" viewBox="0 0 1400 680" preserveAspectRatio="none">
+          <path data-d="1" d="M700,340 L240,150"/>
+          <path data-d="2" d="M700,340 L1160,150"/>
+          <path data-d="3" d="M700,340 L240,530"/>
+          <path data-d="4" d="M700,340 L1160,530"/>
+        </svg>
+        <div class="hub pop" style="transition-delay:.2s"><b>拍招呼</b><i>phah-tsio-hoo</i></div>
+        <div class="node n1 pop" style="transition-delay:1.0s"><b>相見</b><i>逐家早起</i></div>
+        <div class="node n2 pop" style="transition-delay:1.4s"><b>說多謝</b><i>多謝・勞力</i></div>
+        <div class="node n3 pop" style="transition-delay:1.8s"><b>會失禮</b><i>歹勢・失禮</i></div>
+        <div class="node n4 pop" style="transition-delay:2.2s"><b>相辭</b><i>再會・明仔載</i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 結語 -->
+  <section class="slide dark" data-i="9">
+    <div class="chip"><b>09</b> / 09 — 結語</div>
+    <div class="center">
+      <div class="hero rise" data-d="1" style="font-size:180px">有禮數，<span style="color:var(--gold)">逐家疼</span></div>
+      <div class="gloss rise" data-d="2" style="color:var(--paper);font-size:56px;margin-top:50px">咱做伙講台語！</div>
+    </div>
+  </section>
+
+  <div id="sub"></div>
+  <div id="bar"></div>
+
+  <div id="startScreen">
+    <div class="hero">拍招呼</div>
+    <p>台語的好禮數　·　點擊開始</p>
+  </div>
+</div>
+
+<audio id="audio"></audio>
+<script>
+const PAGES = [
+  {i:1, dur:16, sub:"逐家好！咱來學台語的禮數，學拍招呼。"},
+  {i:2, dur:17, sub:"一工內底，對早到暗，咱攏會拍招呼。"},
+  {i:3, dur:12, sub:"天光的時，會當講：逐家早起！"},
+  {i:4, dur:14, sub:"別人鬥相共，愛會記得講：多謝、勞力。"},
+  {i:5, dur:19, sub:"做毋著代誌，就講歹勢、失禮。對方會應你：無要緊。"},
+  {i:6, dur:14, sub:"欲走的時陣，講一聲：再會，明仔載見。"},
+  {i:7, dur:14, sub:"這馬咱來練習，鬥做一段對話。"},
+  {i:8, dur:17, sub:"拍招呼有四款：相見、說多謝、會失禮、相辭。"},
+  {i:9, dur:13, sub:"有禮數，逐家疼。咱做伙講台語！"},
+];
+const slides=[...document.querySelectorAll('.slide')];
+const sub=document.getElementById('sub');
+const bar=document.getElementById('bar');
+const audio=document.getElementById('audio');
+const pad=n=>String(n).padStart(2,'0');
+let cur=-1;
+const totalDur=PAGES.reduce((a,p)=>a+p.dur,0);
+let elapsed=0;
+
+function showSlide(idx){
+  if(idx>=PAGES.length){ finish(); return; }
+  cur=idx;
+  const p=PAGES[idx];
+  slides.forEach((s,k)=>s.classList.toggle('active',k===idx));
+  sub.textContent=p.sub; sub.classList.add('show');
+  audio.src=`assets/narration/page-${pad(p.i)}.wav`;
+  audio.play().catch(()=>{});
+  // 以「音檔結束 + 1.6s 消化」推進；另設 dur 上限保險
+  let advanced=false;
+  const go=()=>{ if(advanced)return; advanced=true; elapsed+=p.dur; next(); };
+  audio.onended=()=>setTimeout(go, 1600);
+  setTimeout(go, p.dur*1000);
+}
+function next(){ showSlide(cur+1); }
+function finish(){
+  slides.forEach(s=>s.classList.remove('active'));
+  slides[slides.length-1].classList.add('active');
+  sub.classList.remove('show');
+  bar.style.width='100%';
+}
+// 進度條：依時間平滑前進
+setInterval(()=>{
+  if(cur<0)return;
+  const base=PAGES.slice(0,cur).reduce((a,p)=>a+p.dur,0);
+  const frac=Math.min(1,(base + (audio.currentTime||0))/totalDur);
+  bar.style.width=(frac*100).toFixed(2)+'%';
+},200);
+
+document.getElementById('startScreen').addEventListener('click',e=>{
+  e.currentTarget.style.display='none';
+  showSlide(0);
+});
+</script>
+</body>
+</html>

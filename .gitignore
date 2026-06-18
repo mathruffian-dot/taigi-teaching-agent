@@ -33,6 +33,15 @@ package-lock.json
 *.mp4
 *.wav
 *.mp3
+*.webm
+
+# 字體檔 (源石黑體等，可由 ButTaiwan/genseki-font 重新下載，不提交)
+*.otf
+*.ttf
+
+# 教學影片渲染輸出與旁白音檔 (可由 record.cjs / generate_narration.py 重新產生)
+video/**/renders/
+video/**/assets/narration/
 
 # 輸出與建置快取
 dist/

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ lesson_title }}｜台語遊戲大廳</title>
+<style>
+:root{--paper:#FAF7EE;--ink:#1A1A1A;--teal:#0E7C7B;--coral:#E36414;--gold:#C8941F;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--paper);font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif;color:var(--ink);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px;}
+header{text-align:center;margin-bottom:36px;}
+h1{font-size:2.2em;font-weight:900;}
+h1 small{display:block;font-size:.45em;color:var(--teal);margin-top:6px;font-weight:700;}
+.grade{display:inline-block;background:var(--teal);color:#fff;border-radius:20px;
+  padding:4px 18px;font-size:.9em;margin-top:12px;font-weight:700;}
+.cards{display:flex;flex-wrap:wrap;gap:28px;justify-content:center;max-width:900px;}
+a.card{display:block;background:#fff;border-radius:22px;padding:30px 34px;width:280px;text-align:center;
+  text-decoration:none;color:var(--ink);box-shadow:0 8px 0 rgba(0,0,0,.07);border-top:12px solid var(--teal);
+  transition:transform .15s ease;}
+a.card:nth-child(2n){border-top-color:var(--coral);}
+a.card:hover{transform:translateY(-6px);}
+.card .ic{font-size:64px;}
+.card b{display:block;font-size:1.5em;font-weight:900;margin-top:8px;}
+.card i{display:block;font-style:italic;color:var(--coral);font-weight:700;margin-top:4px;}
+.card p{color:#777;font-size:.92em;margin-top:10px;}
+footer{margin-top:auto;padding-top:40px;color:#999;font-size:.8em;text-align:center;line-height:1.7;}
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ lesson_title }}<small>台語互動遊戲　·　{{ n_vocab }} 個詞彙</small></h1>
+  {% if grade %}<span class="grade">{{ grade }}</span>{% endif %}
+</header>
+<div class="cards">
+  {% for g in games %}
+  <a class="card" href="{{ g.page }}">
+    <div class="ic">{{ g.icon }}</div>
+    <b>{{ g.title }}</b>
+    <i>{{ g.tailo }}</i>
+    <p>{{ g.desc }}</p>
+  </a>
+  {% endfor %}
+</div>
+<footer>
+  發音皆為預生成台語音檔（教育部官方音檔／意傳媠聲）<br>
+  離線可玩　·　taigi-teaching-agent
+</footer>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ lesson_title }}｜聽音配對</title>
+<style>
+:root{--paper:#FAF7EE;--ink:#1A1A1A;--teal:#0E7C7B;--coral:#E36414;--good:#1E8449;--bad:#C0392B;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--paper);font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif;color:var(--ink);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 14px;
+  touch-action:manipulation;}
+header{display:flex;align-items:center;gap:16px;width:100%;max-width:960px;margin-bottom:14px;}
+header a{color:var(--teal);text-decoration:none;font-weight:900;font-size:1.2em;}
+h1{font-size:1.3em;font-weight:900;flex:1;}
+#score{background:var(--teal);color:#fff;border-radius:18px;padding:4px 18px;font-weight:900;}
+.hint{color:#888;font-size:.9em;margin-bottom:14px;text-align:center;}
+/* 圖卡池（拖曳來源）*/
+#pool{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;min-height:120px;
+  width:100%;max-width:960px;padding:12px;background:#F2EDDC;border-radius:18px;margin-bottom:22px;}
+.chip{background:#fff;border-radius:14px;padding:10px 14px;text-align:center;cursor:grab;
+  user-select:none;touch-action:none;box-shadow:0 4px 0 rgba(0,0,0,.15);}
+.chip img{width:84px;height:84px;object-fit:cover;border-radius:10px;display:block;margin:0 auto;pointer-events:none;}
+.chip b{display:block;font-size:1.25em;font-weight:900;margin-top:6px;pointer-events:none;}
+.chip.dragging{opacity:.92;position:fixed;z-index:99;pointer-events:none;cursor:grabbing;transform:scale(1.06);}
+/* 喇叭目標卡 */
+#targets{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;max-width:960px;}
+.tgt{background:#fff;border-radius:18px;width:200px;padding:16px 12px 14px;text-align:center;
+  border:4px dashed #cbbfa5;box-shadow:0 6px 0 rgba(0,0,0,.06);transition:border-color .2s;}
+.tgt .spk{font-size:2.6em;background:var(--teal);color:#fff;border:none;border-radius:50%;
+  width:84px;height:84px;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.15);}
+.tgt .spk:active{transform:scale(.93);}
+.tgt .tailo{font-style:italic;color:var(--coral);font-weight:700;font-size:1.05em;margin-top:8px;
+  min-height:1.4em;visibility:hidden;}
+.tgt .slot{margin-top:8px;min-height:118px;border-radius:12px;background:#F6F2E6;
+  display:flex;align-items:center;justify-content:center;color:#c9c0aa;font-size:.9em;}
+.tgt.over{border-color:var(--teal);}
+.tgt.ok{border:4px solid var(--good);}
+.tgt.ok .tailo{visibility:visible;}
+.tgt.ok .slot{background:#EAF5EC;color:var(--ink);}
+.tgt.shake{animation:shake .4s;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.slot .chip{cursor:default;box-shadow:none;background:transparent;padding:4px;}
+/* 完成畫面 */
+#doneOverlay{position:fixed;inset:0;background:rgba(26,26,26,.88);display:none;
+  align-items:center;justify-content:center;flex-direction:column;color:#fff;text-align:center;z-index:200;}
+#doneOverlay.show{display:flex;}
+#doneOverlay .big{font-size:2.8em;font-weight:900;}
+#doneOverlay .sc{font-size:1.25em;color:#C8941F;margin:18px 0;white-space:pre-line;}
+#doneOverlay button{font-size:1.2em;font-weight:900;padding:12px 40px;border:none;border-radius:14px;
+  background:var(--coral);color:#fff;cursor:pointer;}
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">←</a>
+  <h1>👂 聽音配對｜{{ lesson_title }}</h1>
+  <div id="score">0 分</div>
+</header>
+<div class="hint">先揤 🔊 聽聲音（會使一直重聽），才共圖卡拖去對的聲遐！</div>
+<div id="pool"></div>
+<div id="targets"></div>
+
+<div id="doneOverlay">
+  <div class="big">🎉 攏總配著矣！</div>
+  <div class="sc" id="finalScore"></div>
+  <button onclick="location.reload()">閣玩一擺</button>
+</div>
+
+<script>
+const VOCAB = {{ vocab_json }};
+const pool = document.getElementById('pool');
+const targets = document.getElementById('targets');
+const scoreEl = document.getElementById('score');
+let score = 0, wrong = 0, done = 0;
+const wrongWords = new Set();
+const t0 = Date.now();
+
+const shuffle = a => a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
+
+// 喇叭目標卡（各自可重複點播；配對成功才揭示臺羅）
+shuffle([...VOCAB]).forEach(v => {
+  const t = document.createElement('div');
+  t.className = 'tgt'; t.dataset.hanji = v.hanji;
+  t.innerHTML = `<button class="spk">🔊</button>` +
+    `<div class="tailo">${v.tailo}</div><div class="slot">拖圖來遮</div>`;
+  const audio = new Audio(v.audio);
+  t.querySelector('.spk').addEventListener('click', () => {
+    audio.currentTime = 0; audio.play().catch(()=>{});
+  });
+  t._audio = audio;
+  targets.appendChild(t);
+});
+// 圖卡池（拖曳來源：圖＋漢字）
+shuffle([...VOCAB]).forEach(v => {
+  const c = document.createElement('div');
+  c.className = 'chip'; c.dataset.hanji = v.hanji;
+  c.innerHTML = (v.image ? `<img src="${v.image}" alt="">` : '') + `<b>${v.hanji}</b>`;
+  pool.appendChild(c);
+});
+
+// Pointer Events 手動拖曳（平板/觸控螢幕皆可）
+let drag = null;
+document.addEventListener('pointerdown', e => {
+  const chip = e.target.closest('#pool .chip, .chip.dragging');
+  if (!chip) return;
+  const r = chip.getBoundingClientRect();
+  drag = { chip, dx: e.clientX - r.left, dy: e.clientY - r.top,
+           home: { parent: chip.parentNode, next: chip.nextSibling } };
+  chip.classList.add('dragging');
+  chip.style.width = r.width + 'px';
+  document.body.appendChild(chip);
+  move(e);
+});
+function move(e){
+  if (!drag) return;
+  drag.chip.style.left = (e.clientX - drag.dx) + 'px';
+  drag.chip.style.top  = (e.clientY - drag.dy) + 'px';
+}
+document.addEventListener('pointermove', move);
+document.addEventListener('pointerup', e => {
+  if (!drag) return;
+  const { chip } = drag;
+  chip.style.visibility = 'hidden';
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  chip.style.visibility = '';
+  const tgt = under && under.closest('.tgt:not(.ok)');
+  chip.classList.remove('dragging');
+  if (tgt && tgt.dataset.hanji === chip.dataset.hanji) {
+    tgt.classList.add('ok');
+    const slot = tgt.querySelector('.slot');
+    slot.textContent = '';
+    chip.style.cssText = '';
+    slot.appendChild(chip);
+    score += 10; done += 1;
+    tgt._audio.currentTime = 0; tgt._audio.play().catch(()=>{});   // 配著＝閣聽一擺
+    if (done === VOCAB.length) setTimeout(finish, 1000);
+  } else {
+    if (tgt) {
+      tgt.classList.add('shake'); setTimeout(()=>tgt.classList.remove('shake'), 450);
+      tgt._audio.currentTime = 0; tgt._audio.play().catch(()=>{}); // 配毋著＝播予伊聽
+      wrongWords.add(tgt.dataset.hanji);
+    }
+    score = Math.max(0, score - 2); wrong += 1;
+    chip.style.cssText = '';
+    drag.home.parent.insertBefore(chip, drag.home.next);
+  }
+  scoreEl.textContent = score + ' 分';
+  drag = null;
+});
+
+function finish(){
+  document.getElementById('finalScore').textContent =
+    `${score} 分　·　配毋著 ${wrong} 擺　·　用時 ${Math.round((Date.now()-t0)/1000)} 秒` +
+    (wrongWords.size ? `\n愛閣練習：${[...wrongWords].join('、')}` : '');
+  document.getElementById('doneOverlay').classList.add('show');
+  submitScore({ game: 'listen', lesson: {{ lesson_title|tojson }}, score, wrong,
+                wrong_words: [...wrongWords],
+                seconds: Math.round((Date.now()-t0)/1000), ts: new Date().toISOString() });
+}
+// M3 才接 GAS：先寫 localStorage 佇列
+function submitScore(payload){
+  const q = JSON.parse(localStorage.getItem('taigi_score_queue') || '[]');
+  q.push(payload);
+  localStorage.setItem('taigi_score_queue', JSON.stringify(q));
+}
+</script>
+</body>
+</html>

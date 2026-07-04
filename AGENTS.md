@@ -74,6 +74,7 @@
 .venv\Scripts\python -m taigi piau "今仔日天氣真好"                    # 漢字→臺羅（KIP）
 .venv\Scripts\python -m taigi check <教材.json>                       # 內容檢核（exit 2=有警告）
 .venv\Scripts\python -m taigi generate --case <案例.json>             # 教材生成
+.venv\Scripts\python -m taigi games --lesson <教材產出資料夾>          # 互動遊戲網站（拖拉配對/聽音配對）
 .venv\Scripts\python -m taigi abtest --engines concat,ithuan          # TTS 審聽測試
 ```
 

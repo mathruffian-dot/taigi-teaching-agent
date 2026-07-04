@@ -53,7 +53,7 @@
 
 ## 🤖 統一指令入口（給任何 Agent）
 
-**不必閱讀 `src/` 原始碼**：核心功能都可透過 `python -m taigi` 使用（於專案根目錄、以 `.venv` 的 Python 執行）。指令總覽 `python -m taigi --help`；完整說明與 TTS 引擎選擇規範見 `AGENTS.md` 同名章節與 `docs/tts-ab-test.md`。子指令：`tts`（語音合成，預設意傳媠聲）、`piau`（漢字→臺羅）、`check`（內容檢核）、`generate`（教材生成）、`abtest`（TTS 審聽測試）；皆支援 `--json`。
+**不必閱讀 `src/` 原始碼**：核心功能都可透過 `python -m taigi` 使用（於專案根目錄、以 `.venv` 的 Python 執行）。指令總覽 `python -m taigi --help`；完整說明與 TTS 引擎選擇規範見 `AGENTS.md` 同名章節與 `docs/tts-ab-test.md`。子指令：`tts`（語音合成，預設意傳媠聲）、`piau`（漢字→臺羅）、`check`（內容檢核）、`generate`（教材生成）、`games`（互動遊戲網站）、`abtest`（TTS 審聽測試）；皆支援 `--json`。
 
 ---
 

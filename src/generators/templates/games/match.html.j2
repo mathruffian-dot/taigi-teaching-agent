@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ lesson_title }}｜拖拉配對</title>
+<style>
+:root{--paper:#FAF7EE;--ink:#1A1A1A;--teal:#0E7C7B;--coral:#E36414;--good:#1E8449;--bad:#C0392B;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--paper);font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif;color:var(--ink);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 14px;
+  touch-action:manipulation;}
+header{display:flex;align-items:center;gap:16px;width:100%;max-width:960px;margin-bottom:18px;}
+header a{color:var(--teal);text-decoration:none;font-weight:900;font-size:1.2em;}
+h1{font-size:1.3em;font-weight:900;flex:1;}
+#score{background:var(--teal);color:#fff;border-radius:18px;padding:4px 18px;font-weight:900;}
+.hint{color:#888;font-size:.9em;margin-bottom:14px;}
+/* 漢字卡池 */
+#pool{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;min-height:74px;
+  width:100%;max-width:960px;padding:12px;background:#F2EDDC;border-radius:18px;margin-bottom:22px;}
+.chip{background:var(--ink);color:#fff;font-size:1.6em;font-weight:900;padding:10px 26px;border-radius:14px;
+  cursor:grab;user-select:none;touch-action:none;box-shadow:0 4px 0 rgba(0,0,0,.25);}
+.chip.dragging{opacity:.9;position:fixed;z-index:99;pointer-events:none;cursor:grabbing;transform:scale(1.08);}
+.chip.done{display:none;}
+/* 目標格 */
+#targets{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;max-width:960px;}
+.tgt{background:#fff;border-radius:18px;width:210px;padding:16px 12px 14px;text-align:center;
+  border:4px dashed #cbbfa5;box-shadow:0 6px 0 rgba(0,0,0,.06);transition:border-color .2s;}
+.tgt img{width:110px;height:110px;object-fit:cover;border-radius:12px;}
+.tgt .tailo{font-style:italic;color:var(--coral);font-weight:700;font-size:1.15em;margin-top:8px;}
+.tgt .zh{color:#999;font-size:.85em;margin-top:2px;}
+.tgt .slot{margin-top:10px;min-height:56px;border-radius:12px;background:#F6F2E6;
+  display:flex;align-items:center;justify-content:center;font-size:1.5em;font-weight:900;color:#c9c0aa;}
+.tgt.over{border-color:var(--teal);}
+.tgt.ok{border:4px solid var(--good);}
+.tgt.ok .slot{background:#EAF5EC;color:var(--ink);}
+.tgt.shake{animation:shake .4s;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+/* 完成畫面 */
+#doneOverlay{position:fixed;inset:0;background:rgba(26,26,26,.88);display:none;
+  align-items:center;justify-content:center;flex-direction:column;color:#fff;text-align:center;z-index:200;}
+#doneOverlay.show{display:flex;}
+#doneOverlay .big{font-size:3em;font-weight:900;}
+#doneOverlay .sc{font-size:1.4em;color:#C8941F;margin:18px 0;}
+#doneOverlay button{font-size:1.2em;font-weight:900;padding:12px 40px;border:none;border-radius:14px;
+  background:var(--coral);color:#fff;cursor:pointer;}
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">←</a>
+  <h1>🧩 拖拉配對｜{{ lesson_title }}</h1>
+  <div id="score">0 分</div>
+</header>
+<div class="hint">共漢字卡拖去對的臺羅遐——對矣就會聽著正確發音！</div>
+<div id="pool"></div>
+<div id="targets"></div>
+
+<div id="doneOverlay">
+  <div class="big">🎉 攏總對矣！</div>
+  <div class="sc" id="finalScore"></div>
+  <button onclick="location.reload()">閣玩一擺</button>
+</div>
+
+<script>
+const VOCAB = {{ vocab_json }};
+const pool = document.getElementById('pool');
+const targets = document.getElementById('targets');
+const scoreEl = document.getElementById('score');
+let score = 0, wrong = 0, done = 0;
+const t0 = Date.now();
+
+const shuffle = a => a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
+
+// 建立目標格（圖＋臺羅＋華語）與漢字卡池（各自洗牌）
+shuffle([...VOCAB]).forEach(v => {
+  const t = document.createElement('div');
+  t.className = 'tgt'; t.dataset.hanji = v.hanji;
+  t.innerHTML = (v.image ? `<img src="${v.image}" alt="">` : '') +
+    `<div class="tailo">${v.tailo}</div><div class="zh">${v.zh}</div><div class="slot">？</div>`;
+  targets.appendChild(t);
+});
+shuffle([...VOCAB]).forEach(v => {
+  const c = document.createElement('div');
+  c.className = 'chip'; c.textContent = v.hanji; c.dataset.hanji = v.hanji; c.dataset.audio = v.audio;
+  pool.appendChild(c);
+});
+
+// Pointer Events 手動拖曳（HTML5 DnD 在平板上不可靠）
+let drag = null;
+document.addEventListener('pointerdown', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip || chip.classList.contains('done')) return;
+  const r = chip.getBoundingClientRect();
+  drag = { chip, dx: e.clientX - r.left, dy: e.clientY - r.top,
+           home: { parent: chip.parentNode, next: chip.nextSibling } };
+  chip.classList.add('dragging');
+  chip.style.width = r.width + 'px';
+  document.body.appendChild(chip);
+  move(e);
+});
+function move(e){
+  if (!drag) return;
+  drag.chip.style.left = (e.clientX - drag.dx) + 'px';
+  drag.chip.style.top  = (e.clientY - drag.dy) + 'px';
+}
+document.addEventListener('pointermove', move);
+document.addEventListener('pointerup', e => {
+  if (!drag) return;
+  const { chip } = drag;
+  chip.style.visibility = 'hidden';
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  chip.style.visibility = '';
+  const tgt = under && under.closest('.tgt:not(.ok)');
+  if (tgt && tgt.dataset.hanji === chip.dataset.hanji) {
+    tgt.classList.add('ok');
+    tgt.querySelector('.slot').textContent = chip.dataset.hanji;
+    chip.remove();
+    score += 10; done += 1;
+    new Audio(chip.dataset.audio).play().catch(()=>{});
+    if (done === VOCAB.length) setTimeout(finish, 900);
+  } else {
+    if (tgt) { tgt.classList.add('shake'); setTimeout(()=>tgt.classList.remove('shake'), 450); }
+    score = Math.max(0, score - 2); wrong += 1;
+    chip.classList.remove('dragging');
+    chip.style.cssText = '';
+    drag.home.parent.insertBefore(chip, drag.home.next);
+  }
+  chip.classList.remove('dragging');
+  scoreEl.textContent = score + ' 分';
+  drag = null;
+});
+
+function finish(){
+  document.getElementById('finalScore').textContent =
+    `${score} 分　·　拖錯 ${wrong} 擺　·　用時 ${Math.round((Date.now()-t0)/1000)} 秒`;
+  document.getElementById('doneOverlay').classList.add('show');
+  submitScore({ game: 'match', lesson: {{ lesson_title|tojson }}, score, wrong,
+                seconds: Math.round((Date.now()-t0)/1000), ts: new Date().toISOString() });
+}
+// M3 才接 GAS：先寫 localStorage 佇列，屆時連線補送
+function submitScore(payload){
+  const q = JSON.parse(localStorage.getItem('taigi_score_queue') || '[]');
+  q.push(payload);
+  localStorage.setItem('taigi_score_queue', JSON.stringify(q));
+}
+</script>
+</body>
+</html>

@@ -5,6 +5,7 @@
 #   piau      漢字 → 臺羅拼音（意傳標音，萌典備援）
 #   check     教材內容檢核（華語用字、漢字↔臺羅音節一致性）
 #   generate  教材生成（轉呼叫 material_generator）
+#   games     互動遊戲網站生成（拖拉配對、聽音揀圖…，吃 generate 的產出資料夾）
 #   abtest    TTS A/B 審聽測試（轉呼叫 scripts/tts_ab_test.py）
 #
 # 慣例：--json 輸出機器可讀 JSON（UTF-8、不轉義）；exit code 0=成功、1=失敗、
@@ -100,6 +101,14 @@ def cmd_generate(args) -> int:
     return subprocess.run(cmd, cwd=PROJECT_ROOT).returncode
 
 
+def cmd_games(args) -> int:
+    from generators.game_generator import GameGenerator
+    tpls = [t.strip() for t in args.templates.split(",")] if args.templates else None
+    out = GameGenerator(args.config).generate(args.lesson, tpls, args.output)
+    print(f"[+] 遊戲網站完成：{os.path.join(out, 'index.html')}")
+    return 0
+
+
 def cmd_abtest(args) -> int:
     cmd = [sys.executable, os.path.join(PROJECT_ROOT, "scripts", "tts_ab_test.py"),
            "--config", args.config]
@@ -145,6 +154,12 @@ def main() -> int:
     p.add_argument("--output", default=None, help="輸出目錄（預設 config 的 output.base_dir）")
     p.add_argument("--no-media", action="store_true", help="跳過音訊與圖片生成")
     p.set_defaults(func=cmd_generate)
+
+    p = sub.add_parser("games", help="互動遊戲網站生成（拖拉配對／聽音揀圖）")
+    p.add_argument("--lesson", required=True, help="教材產出資料夾（含 lesson_structure.json 與 audio/）")
+    p.add_argument("--templates", default=None, help="逗號分隔：match,listen（預設全部）")
+    p.add_argument("--output", default=None, help="輸出資料夾（預設 <lesson>/games）")
+    p.set_defaults(func=cmd_games)
 
     p = sub.add_parser("abtest", help="TTS A/B 審聽測試（產出 review.html）")
     p.add_argument("--engines", default=None, help="逗號分隔引擎清單，如 concat,ithuan")

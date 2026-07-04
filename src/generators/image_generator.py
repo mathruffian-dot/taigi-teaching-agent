@@ -242,6 +242,25 @@ class FreeImageGenerator:
             print(f"  [-] 本機 fallback 插圖產生失敗: {e}")
             return False
 
+    def _save_normalized_image(self, img_content: bytes, output_path: str) -> None:
+        """
+        AI Horde 回傳的圖片常是 WebP（即使網址副檔名是 .jpg）。python-docx 不支援
+        WebP，直接原樣存檔會讓講義嵌圖失敗（顯示「圖片損毀」）。故以 Pillow 依輸出
+        副檔名轉存為真正的 JPEG/PNG；Pillow 解不開時才退回原樣寫入。
+        """
+        try:
+            import io
+            from PIL import Image
+            img = Image.open(io.BytesIO(img_content))
+            ext = os.path.splitext(output_path)[1].lower()
+            if ext == ".png":
+                img.save(output_path, "PNG")
+            else:
+                img.convert("RGB").save(output_path, "JPEG", quality=92)
+        except Exception:
+            with open(output_path, "wb") as f:
+                f.write(img_content)
+
     def generate_image(self, term: str, output_path: str, width: int = 512, height: int = 512) -> bool:
         """
         利用 AI Horde (免費、免 Key 匿名 API) 下載詞彙插圖。
@@ -336,8 +355,7 @@ class FreeImageGenerator:
                         img_status, img_content, _ = self._http_get_with_fallback(img_url, is_binary=True)
                         if img_status == 200 and img_content:
                             os.makedirs(os.path.dirname(output_path), exist_ok=True)
-                            with open(output_path, "wb") as f:
-                                f.write(img_content)
+                            self._save_normalized_image(img_content, output_path)
                             print(f"  [+] 成功儲存生圖至: {output_path}")
                             return True
             

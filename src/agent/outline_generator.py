@@ -27,6 +27,8 @@ class TaigiOutlineGenerator:
         ollama_cfg = self.config.get("ollama", {})
         self.ollama_url = ollama_cfg.get("url", "http://localhost:11434")
         self.configured_model = ollama_cfg.get("model", "SARC-Taigi-LLM-12b:latest")
+        # 12B 模型冷啟動載入常超過 60 秒，逾時太短會永遠降級成 Mock 大綱（實測踩坑）
+        self.timeout = float(ollama_cfg.get("timeout", 300))
 
     def _load_config(self, filepath: str) -> Dict[str, Any]:
         if os.path.exists(filepath):
@@ -219,7 +221,7 @@ JSON Schema：
         }
 
         try:
-            res = requests.post(url, json=payload, timeout=60)
+            res = requests.post(url, json=payload, timeout=self.timeout)
             if res.status_code == 200:
                 content = res.json().get("message", {}).get("content", "").strip()
                 return self._parse_json_response(content)

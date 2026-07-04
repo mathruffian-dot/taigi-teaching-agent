@@ -1,7 +1,9 @@
 {
   "ollama": {
+    "_comment": "timeout 為大綱生成的等待秒數；12B 模型冷啟動載入常超過 60 秒，勿設太短",
     "url": "http://localhost:11434",
-    "model": "SARC-Taigi-LLM-12b:latest"
+    "model": "SARC-Taigi-LLM-12b:latest",
+    "timeout": 300
   },
   "obsidian": {
     "vault_path": "C:\\Users\\mathr\\OneDrive\\文件\\Secondbrain",

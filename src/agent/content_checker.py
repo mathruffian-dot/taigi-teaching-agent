@@ -7,6 +7,7 @@
 #   1. 漢字夾雜華語常用詞（非道地台語用字）——附建議台語用字。
 #   2. 對話／詞彙的「漢字字數」與「臺羅音節數」不一致——常代表漢字與拼音對不上。
 import re
+import unicodedata
 from typing import Dict, Any, List
 
 # 華語慣用詞 -> 建議台語用字（高把握度清單；僅作審核提醒，非自動更正）
@@ -45,8 +46,16 @@ def _count_hanji(text: str) -> int:
 
 
 def _count_syllables(tailo: str) -> int:
-    """以拉丁字母連續段估算臺羅音節數（數字與連字號/空白皆為分隔）。"""
-    return len(re.findall(r"[A-Za-z]+", tailo or ""))
+    """
+    以拉丁字母連續段估算臺羅音節數（數字與連字號/空白皆為分隔）。
+    同時支援數字調（tsiah8）與調符式 KIP（tsia̍h）：調符式先做 NFD 分解、
+    剝離變音符號（Mn），否則 a̍/ó 等會把一個音節拆成多段而誤報。
+    """
+    if not tailo:
+        return 0
+    stripped = "".join(c for c in unicodedata.normalize("NFD", tailo)
+                       if unicodedata.category(c) != "Mn")
+    return len(re.findall(r"[A-Za-z]+", stripped))
 
 
 def _scan_mandarin(hanji: str) -> List[str]:

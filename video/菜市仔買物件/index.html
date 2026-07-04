@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<title>去菜市仔買物件</title>
+<style>
+@font-face{font-family:'GenSeki TW';src:url('../拍招呼/assets/fonts/GenSekiGothic2TW-H.otf') format('opentype');font-weight:900;font-display:block;}
+@font-face{font-family:'GenSeki TW';src:url('../拍招呼/assets/fonts/GenSekiGothic2TW-B.otf') format('opentype');font-weight:700;font-display:block;}
+@font-face{font-family:'GenSeki TW';src:url('../拍招呼/assets/fonts/GenSekiGothic2TW-M.otf') format('opentype');font-weight:500;font-display:block;}
+
+:root{
+  --paper:#FAF7EE; --paper2:#F2EDDC; --ink:#1A1A1A;
+  --teal:#0E7C7B; --coral:#E36414; --gold:#C8941F;
+  --fs-hero:200px; --fs-title:120px; --fs-sub:84px; --fs-body:56px; --fs-note:30px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#000;
+  font-family:'GenSeki TW',sans-serif;-webkit-font-smoothing:antialiased;}
+.stage{position:relative;width:1920px;height:1080px;}
+
+.slide{position:absolute;inset:0;opacity:0;visibility:hidden;
+  transition:opacity .5s ease;background:var(--paper);
+  padding:56px 80px 120px;display:flex;flex-direction:column;}
+.slide.active{opacity:1;visibility:visible;}
+.slide.dark{background:var(--ink);color:var(--paper);}
+
+.chip{position:absolute;top:48px;left:80px;font-weight:700;font-size:var(--fs-note);color:var(--ink);}
+.chip b{background:var(--teal);color:#fff;padding:4px 16px;border-radius:6px;margin-right:14px;}
+.dark .chip{color:var(--paper);}
+
+#bar{position:absolute;bottom:0;left:0;height:6px;background:var(--teal);width:0;z-index:50;transition:width .3s linear;}
+
+#sub{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);max-width:88%;
+  background:rgba(26,26,26,.92);color:#fff;font-weight:700;font-size:34px;
+  padding:12px 30px;border-radius:10px;text-align:center;opacity:0;transition:opacity .3s;z-index:40;
+  letter-spacing:1px;}
+#sub.show{opacity:1;}
+
+.center{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;}
+.hero{font-weight:900;font-size:var(--fs-hero);line-height:1.05;}
+.title{font-weight:900;font-size:var(--fs-title);line-height:1.1;}
+.romaji{font-weight:700;font-size:var(--fs-sub);color:var(--teal);letter-spacing:2px;margin-top:8px;}
+.gloss{font-weight:500;font-size:var(--fs-body);color:#555;margin-top:18px;}
+.teal{color:var(--teal);} .coral{color:var(--coral);} .gold{color:var(--gold);}
+
+.rise{opacity:0;transform:translateY(40px);transition:opacity .7s ease,transform .7s ease;}
+.active .rise{opacity:1;transform:translateY(0);}
+.active .rise[data-d="1"]{transition-delay:.3s;}
+.active .rise[data-d="2"]{transition-delay:.9s;}
+.active .rise[data-d="3"]{transition-delay:1.6s;}
+.active .rise[data-d="4"]{transition-delay:2.3s;}
+.active .rise[data-d="5"]{transition-delay:3.0s;}
+.pop{opacity:0;transform:scale(.5);transition:opacity .5s,transform .5s cubic-bezier(.34,1.56,.64,1);}
+.active .pop{opacity:1;transform:scale(1);}
+.active .pop[data-d="1"]{transition-delay:.4s;}
+.active .pop[data-d="2"]{transition-delay:1.0s;}
+.active .pop[data-d="3"]{transition-delay:1.6s;}
+.active .pop[data-d="4"]{transition-delay:2.2s;}
+
+/* 三卡（P2）*/
+.scenes{display:flex;gap:70px;}
+.scene{background:var(--paper2);border-radius:26px;padding:44px 60px;text-align:center;min-width:380px;
+  box-shadow:0 8px 0 rgba(0,0,0,.06);border-top:14px solid var(--teal);}
+.scene.c2{border-top-color:var(--coral);}
+.scene .ic{font-size:110px;}
+.scene b{display:block;font-size:76px;font-weight:900;color:var(--ink);margin-top:6px;}
+.scene i{font-style:normal;font-size:40px;color:var(--coral);font-weight:700;}
+.scene p{font-size:32px;color:#666;margin-top:10px;font-weight:500;}
+
+/* 詞卡（P3/P4）*/
+.vcards{display:flex;gap:80px;}
+.vcard{background:#fff;border-radius:30px;padding:56px 80px;text-align:center;min-width:640px;
+  border-left:20px solid var(--coral);box-shadow:0 10px 0 rgba(0,0,0,.07);}
+.vcard b{display:block;font-size:140px;font-weight:900;color:var(--ink);line-height:1.05;}
+.vcard i{font-style:italic;font-size:62px;color:var(--coral);font-weight:700;display:block;margin-top:14px;}
+.vcard p{font-size:36px;color:#777;margin-top:16px;font-weight:500;}
+
+/* 發音眉角（P5 ★）*/
+.pron{display:flex;flex-direction:column;gap:60px;align-items:center;}
+.syl{display:flex;gap:0;align-items:center;}
+.syl span{background:var(--teal);color:#fff;font-weight:900;font-size:84px;padding:26px 44px;border-radius:20px;
+  margin:0 26px;transition:margin 1s ease .8s;}
+.active .syl.merge span{margin:0 4px;}
+.syl .plus{background:none;color:#999;font-size:60px;padding:0;margin:0;transition:opacity .6s ease .8s;}
+.active .syl.merge .plus{opacity:0;font-size:0;margin:0;padding:0;}
+.mih{display:flex;align-items:baseline;gap:8px;font-weight:900;}
+.mih .base{font-size:120px;color:var(--ink);font-style:italic;}
+.mih .stop{font-size:120px;color:var(--coral);font-style:italic;position:relative;}
+.mih .cut{position:absolute;right:-26px;top:8%;width:14px;height:84%;background:var(--coral);border-radius:6px;
+  transform:scaleY(0);transform-origin:top;transition:transform .5s ease 1.6s;}
+.active .mih .cut{transform:scaleY(1);}
+.pnote{font-size:40px;font-weight:700;color:var(--ink);}
+
+/* 對話（P6/P7）*/
+.dlg{display:flex;flex-direction:column;gap:44px;width:100%;max-width:1560px;}
+.line{display:flex;align-items:flex-start;gap:30px;text-align:left;}
+.line .who{font-size:38px;font-weight:900;color:#fff;background:var(--teal);border-radius:50%;width:96px;height:96px;
+  display:flex;align-items:center;justify-content:center;flex:0 0 96px;}
+.line.b .who{background:var(--coral);}
+.line .bub{background:#fff;border-radius:24px;padding:30px 44px;box-shadow:0 8px 0 rgba(0,0,0,.06);flex:1;}
+.line .hj{font-size:64px;font-weight:900;color:var(--ink);line-height:1.25;}
+.line .rj{font-size:38px;color:var(--coral);font-weight:700;font-style:italic;margin-top:8px;}
+.line .gl{font-size:28px;color:#888;margin-top:8px;font-weight:500;}
+
+/* 句型積木（P8 ★）*/
+.blocks{display:flex;gap:26px;align-items:stretch;}
+.blk{border-radius:22px;padding:30px 46px;text-align:center;color:#fff;}
+.blk b{display:block;font-size:76px;font-weight:900;}
+.blk i{font-style:italic;font-size:34px;font-weight:700;opacity:.85;display:block;margin-top:6px;}
+.blk.t{background:var(--teal);} .blk.g{background:#7d8c92;} .blk.c{background:var(--coral);}
+.subs{display:flex;flex-direction:column;gap:26px;margin-top:56px;}
+.subrow{background:#fff;border-radius:18px;padding:22px 56px;font-size:56px;font-weight:900;color:var(--ink);
+  box-shadow:0 6px 0 rgba(0,0,0,.06);}
+.subrow i{font-style:italic;font-size:34px;color:var(--coral);font-weight:700;margin:0 10px;}
+
+/* 金句（P9）*/
+.steps{display:flex;gap:40px;margin-top:60px;}
+.step{background:rgba(255,255,255,.10);border-radius:20px;padding:26px 44px;text-align:center;}
+.step em{font-style:normal;font-size:44px;font-weight:900;color:var(--gold);display:block;}
+.step b{font-size:52px;font-weight:900;color:var(--paper);display:block;margin-top:4px;}
+.step i{font-style:italic;font-size:28px;color:#9fc7cf;font-weight:700;display:block;margin-top:6px;}
+
+#startScreen{position:absolute;inset:0;background:var(--ink);color:var(--paper);z-index:100;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;}
+#startScreen .hero{font-size:150px;}
+#startScreen p{font-size:40px;color:var(--gold);margin-top:30px;}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+
+  <!-- 1 封面 -->
+  <section class="slide dark" data-i="1">
+    <div class="chip"><b>01</b> / 09 — 開場</div>
+    <div class="center">
+      <div class="hero rise" data-d="1" style="font-size:176px">去菜市仔<span class="gold">買物件</span></div>
+      <div class="romaji rise" data-d="2" style="color:var(--coral);font-size:64px">Khì tshài-tshī-á bé mi̍h-kiānn</div>
+      <div class="gloss rise" data-d="3" style="color:var(--paper);font-size:52px;margin-top:44px">台語會話課　·　國中七年級</div>
+    </div>
+  </section>
+
+  <!-- 2 動機：菜市仔＝台語教室 -->
+  <section class="slide" data-i="2">
+    <div class="chip"><b>02</b> / 09 — 為啥物是菜市仔</div>
+    <div class="center">
+      <div class="title rise" data-d="1" style="font-size:96px;margin-bottom:54px">菜市仔＝<span class="teal">上好的台語教室</span></div>
+      <div class="scenes">
+        <div class="scene pop" data-d="2"><div class="ic">👂</div><b>聽 <i>thiann</i></b><p>頭家的喝聲、價數</p></div>
+        <div class="scene c2 pop" data-d="3"><div class="ic">💬</div><b>講 <i>kóng</i></b><p>問價、出價、應話</p></div>
+        <div class="scene pop" data-d="4"><div class="ic">🧺</div><b>買 <i>bé</i></b><p>用台語完成交易</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 詞卡一 -->
+  <section class="slide" data-i="3">
+    <div class="chip"><b>03</b> / 09 — 關鍵詞（一）</div>
+    <div class="center">
+      <div class="vcards">
+        <div class="vcard pop" data-d="1"><b>菜市仔</b><i>tshài-tshī-á</i><p>菜市場</p></div>
+        <div class="vcard pop" data-d="2"><b>買物件</b><i>bé mi̍h-kiānn</i><p>買東西</p></div>
+      </div>
+      <div class="gloss rise" data-d="3" style="margin-top:56px">🔊 綴教育部官方發音，念兩遍</div>
+    </div>
+  </section>
+
+  <!-- 4 詞卡二 -->
+  <section class="slide" data-i="4">
+    <div class="chip"><b>04</b> / 09 — 關鍵詞（二）</div>
+    <div class="center">
+      <div class="vcards">
+        <div class="vcard pop" data-d="1"><b>偌濟錢</b><i>guā-tsē tsînn</i><p>多少錢</p></div>
+        <div class="vcard pop" data-d="2"><b>多謝</b><i>to-siā</i><p>謝謝</p></div>
+      </div>
+      <div class="gloss rise" data-d="3" style="margin-top:56px">問價用「偌濟錢」，買了說「多謝」</div>
+    </div>
+  </section>
+
+  <!-- 5 ★ 發音眉角 -->
+  <section class="slide" data-i="5">
+    <div class="chip"><b>05</b> / 09 — 發音眉角 ★</div>
+    <div class="center pron">
+      <div class="rise" data-d="1">
+        <div class="mih"><span class="base">mi</span><span class="stop">h<span class="cut"></span></span></div>
+        <div class="pnote" style="margin-top:10px">「物 <span class="coral">mi̍h</span>」入聲 <span class="coral">-h</span>：尾音短短收，莫拖長</div>
+      </div>
+      <div class="rise" data-d="3">
+        <div class="syl merge">
+          <span>tshài</span><span class="plus">＋</span><span>tshī</span><span class="plus">＋</span><span>á</span>
+        </div>
+        <div class="pnote" style="margin-top:16px">毋是一字一字念——<span class="teal">連做伙，才會順</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 對話（上）-->
+  <section class="slide" data-i="6">
+    <div class="chip"><b>06</b> / 09 — 對話（上）</div>
+    <div class="center">
+      <div class="dlg">
+        <div class="line rise" data-d="1"><div class="who">阿偉</div>
+          <div class="bub"><div class="hj">阿媽，咱今仔日欲去菜市仔買物件無？</div>
+          <div class="rj">A-má, lán kin-á-ji̍t beh khì tshài-tshī-á bé mi̍h-kiānn bô?</div>
+          <div class="gl">阿嬤，我們今天要去菜市場買東西嗎？</div></div></div>
+        <div class="line b rise" data-d="3"><div class="who">阿媽</div>
+          <div class="bub"><div class="hj">有啊，咱欲來去買一寡魚仔、肉佮菜。</div>
+          <div class="rj">Ū--ah, lán beh lâi-khì bé tsi̍t-kuá hî-á, bah kah tshài.</div>
+          <div class="gl">有啊，我們要去買一些魚、肉和菜。</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 ★ 對話（下）問價 -->
+  <section class="slide" data-i="7">
+    <div class="chip"><b>07</b> / 09 — 對話（下）按呢問價 ★</div>
+    <div class="center">
+      <div class="dlg">
+        <div class="line rise" data-d="1"><div class="who">阿偉</div>
+          <div class="bub"><div class="hj">阿媽，這个魚仔一斤<span class="coral">偌濟錢</span>？</div>
+          <div class="rj">A-má, tsit-ê hî-á tsi̍t-kin guā-tsē tsînn?</div>
+          <div class="gl">阿嬤，這個魚一斤多少錢？</div></div></div>
+        <div class="line b rise" data-d="3"><div class="who">阿媽</div>
+          <div class="bub"><div class="hj">一斤兩百箍，<span class="coral">多謝</span>頭家。</div>
+          <div class="rj">Tsi̍t-kin nn̄g-pah khoo, to-siā thâu-ke.</div>
+          <div class="gl">一斤兩百元，謝謝老闆。</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 ★ 句型積木 -->
+  <section class="slide" data-i="8">
+    <div class="chip"><b>08</b> / 09 — 萬用句型 ★</div>
+    <div class="center">
+      <div class="blocks">
+        <div class="blk t pop" data-d="1"><b>這个魚仔</b><i>tsit-ê hî-á</i></div>
+        <div class="blk g pop" data-d="2"><b>一斤</b><i>tsi̍t-kin</i></div>
+        <div class="blk c pop" data-d="3"><b>偌濟錢？</b><i>guā-tsē tsînn?</i></div>
+      </div>
+      <div class="subs">
+        <div class="subrow rise" data-d="3">菜頭 <i>tshài-thâu</i>　一條 <i>tsi̍t tiâu</i>　<span class="coral">偌濟錢？</span></div>
+        <div class="subrow rise" data-d="4">蘋果 <i>phōng-kó</i>　一粒 <i>tsi̍t lia̍p</i>　<span class="coral">偌濟錢？</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 金句＋任務 -->
+  <section class="slide dark" data-i="9">
+    <div class="chip"><b>09</b> / 09 — 帶走一句話</div>
+    <div class="center">
+      <div class="hero rise" data-d="1" style="font-size:150px">「頭家，<span class="gold">這偌濟錢？</span>」</div>
+      <div class="romaji rise" data-d="2" style="color:var(--coral);font-size:54px">Thâu-ke, tse guā-tsē tsînn?</div>
+      <div class="steps">
+        <div class="step pop" data-d="3"><em>1</em><b>拍招呼</b><i>Thâu-ke gâu-tsá!</i></div>
+        <div class="step pop" data-d="3"><em>2</em><b>問價</b><i>Tse guā-tsē tsînn?</i></div>
+        <div class="step pop" data-d="4"><em>3</em><b>說多謝</b><i>To-siā!</i></div>
+      </div>
+      <div class="gloss rise" data-d="5" style="color:var(--gold);font-size:48px;margin-top:52px">這禮拜去講看覓！多謝逐家！</div>
+    </div>
+  </section>
+
+  <div id="sub"></div>
+  <div id="bar"></div>
+
+  <div id="startScreen">
+    <div class="hero">去菜市仔買物件</div>
+    <p>台語會話課　·　點擊開始</p>
+  </div>
+</div>
+
+<script>
+// __PAGES_START__（dur 由 build_timing.py 依 durations.json 回填）
+const PAGES = [
+  {i:1, dur:6.4, sub:"逐家好！咱來去菜市仔買物件！"},
+  {i:2, dur:8.7, sub:"菜市仔，是上好的台語教室。"},
+  {i:3, dur:22.3, sub:"第一个詞：菜市仔、買物件"},
+  {i:4, dur:18.6, sub:"問價用「偌濟錢」，買了說「多謝」"},
+  {i:5, dur:24.0, sub:"「物」尾音短短收；菜市仔愛連做伙念"},
+  {i:6, dur:11.0, sub:"阿媽，咱今仔日欲去菜市仔買物件無？"},
+  {i:7, dur:8.8, sub:"阿媽，這个魚仔一斤偌濟錢？"},
+  {i:8, dur:13.3, sub:"綴我講：＿＿＿偌濟錢？"},
+  {i:9, dur:11.3, sub:"頭家，這偌濟錢？——去講看覓！"},
+];
+// __PAGES_END__
+const slides=[...document.querySelectorAll('.slide')];
+const sub=document.getElementById('sub');
+const bar=document.getElementById('bar');
+let cur=-1, t0=0;
+const totalDur=PAGES.reduce((a,p)=>a+p.dur,0);
+
+function showSlide(idx){
+  if(idx>=PAGES.length){ finish(); return; }
+  cur=idx;
+  const p=PAGES[idx];
+  slides.forEach((s,k)=>s.classList.toggle('active',k===idx));
+  sub.textContent=p.sub; sub.classList.add('show');
+  setTimeout(()=>showSlide(idx+1), p.dur*1000);
+}
+function finish(){
+  slides.forEach(s=>s.classList.remove('active'));
+  slides[slides.length-1].classList.add('active');
+  sub.classList.remove('show');
+  bar.style.width='100%';
+}
+setInterval(()=>{
+  if(cur<0||!t0)return;
+  bar.style.width=(Math.min(1,(Date.now()-t0)/1000/totalDur)*100).toFixed(2)+'%';
+},200);
+
+document.getElementById('startScreen').addEventListener('click',e=>{
+  e.currentTarget.style.display='none';
+  t0=Date.now();
+  showSlide(0);
+});
+</script>
+</body>
+</html>

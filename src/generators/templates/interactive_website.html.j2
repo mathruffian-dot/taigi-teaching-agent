@@ -97,6 +97,33 @@
     }
     .curriculum-list li:last-child { border: none; }
 
+    .official-resource-list {
+      display: grid;
+      gap: 14px;
+    }
+    .official-resource-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--accent);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .official-resource-title {
+      color: var(--primary);
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .official-resource-meta {
+      color: #60746d;
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .official-resource-card a {
+      color: var(--primary);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
     /* 3D 翻轉單字卡 CSS */
     .vocab-grid {
       display: grid;
@@ -779,6 +806,62 @@
             </div>
             {% endfor %}
     </div>
+
+    {% if official_generation_assets %}
+    <h2>五、官方延伸互動素材</h2>
+    <div class="official-resource-list">
+      {% for asset in official_generation_assets %}
+      <div class="official-resource-card">
+        <div class="official-resource-title">
+          {% if asset.asset_type == 'multiple_choice' %}
+            官方延伸題：{{ asset.question }}
+          {% elif asset.asset_type == 'reflection_4f' %}
+            4F 反思活動
+          {% elif asset.asset_type == 'vocabulary_card' %}
+            詞彙卡：{{ asset.hanji }}
+          {% else %}
+            投影片素材：{{ asset.heading or asset.title }}
+          {% endif %}
+        </div>
+        <div class="official-resource-meta">
+          {{ asset.asset_type }}{% if asset.learning_stage %}｜{{ asset.learning_stage }}{% endif %}{% if asset.title %}｜{{ asset.title }}{% endif %}
+        </div>
+        {% if asset.asset_type == 'multiple_choice' %}
+          <ol type="A">
+            {% for option in asset.options %}<li>{{ option }}</li>{% endfor %}
+          </ol>
+          {% if asset.teacher_answer_required %}<div class="official-resource-meta">需教師確認正確答案後使用。</div>{% endif %}
+        {% elif asset.asset_type == 'reflection_4f' %}
+          <ul>
+            {% for prompt in asset.prompts %}<li>{{ prompt }}</li>{% endfor %}
+          </ul>
+        {% elif asset.asset_type == 'vocabulary_card' %}
+          <div>{{ asset.hanji }}｜{{ asset.tailo }}｜{{ asset.meaning }}</div>
+        {% elif asset.bullets %}
+          <ul>
+            {% for bullet in asset.bullets[:4] %}<li>{{ bullet }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+        {% if asset.source_url %}<a href="{{ asset.source_url }}" target="_blank" rel="noopener">開啟官方來源頁</a>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if official_materials %}
+    <h2>六、官方素材建議</h2>
+    <div class="official-resource-list">
+      {% for item in official_materials %}
+      <div class="official-resource-card">
+        <div class="official-resource-title">{{ item.title }}</div>
+        <div class="official-resource-meta">
+          {{ item.learning_stage }}{% if item.resource_kind %}｜{{ item.resource_kind }}{% endif %}{% if item.provider %}｜{{ item.provider }}{% endif %}
+        </div>
+        {% if item.page_url %}<a href="{{ item.page_url }}" target="_blank" rel="noopener">開啟官方來源頁</a>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
 
   </div>
 

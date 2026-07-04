@@ -1,0 +1,214 @@
+{
+  "name": "台語 TTS A/B 審聽測試組",
+  "version": "2026-07-04",
+  "description": "供比較各語音引擎（concat 接音／VoxCPM2／雅婷台語聲／未來 BreezyVoice-Taigi）台語發音準確度的固定測試句組。詞彙取自教師已驗證詞庫（knowledge/dictionaries/vocabulary_db.json）與《拍招呼》影片詞彙表，臺羅依教育部《臺灣台語常用詞辭典》標記本調（citation tone），變調應由語音引擎自行處理——審聽時請特別聽變調是否正確。",
+  "review_status": "draft_pending_teacher",
+  "scoring_rubric": {
+    "pronunciation": "發音準確度：聲母／韻母／入聲尾是否正確（1-5）",
+    "tone": "聲調與變調：本調正確、連讀變調自然（1-5）",
+    "naturalness": "自然度：節奏、停頓、像不像母語者（1-5）",
+    "overall": "整體可用度：可否直接用於教材（1-5）"
+  },
+  "sentences": [
+    {
+      "id": "tts_ab_001",
+      "category": "baseline_word",
+      "hanji": "食飯",
+      "tailo_diacritic": "tsia̍h-pn̄g",
+      "tailo_numeric": "tsiah8-png7",
+      "zh_tw": "吃飯",
+      "test_focus": "陽入 -h 尾＋音節性鼻音 n̄g；單詞對照組（concat 必為官方音，當基準）",
+      "source": "vocabulary_db vocab_000001"
+    },
+    {
+      "id": "tts_ab_002",
+      "category": "baseline_word",
+      "hanji": "讀冊",
+      "tailo_diacritic": "tha̍k-tsheh",
+      "tailo_numeric": "thak8-tsheh4",
+      "zh_tw": "讀書",
+      "test_focus": "入聲 -k／-h 尾＋送氣聲母 th-/tsh-",
+      "source": "vocabulary_db vocab_000002"
+    },
+    {
+      "id": "tts_ab_003",
+      "category": "baseline_word",
+      "hanji": "腹肚",
+      "tailo_diacritic": "pak-tóo",
+      "tailo_numeric": "pak4-too2",
+      "zh_tw": "肚子",
+      "test_focus": "陰入 -k 前字變調",
+      "source": "vocabulary_db vocab_000033"
+    },
+    {
+      "id": "tts_ab_004",
+      "category": "baseline_word",
+      "hanji": "學校",
+      "tailo_diacritic": "ha̍k-hāu",
+      "tailo_numeric": "hak8-hau7",
+      "zh_tw": "學校",
+      "test_focus": "陽入 -k＋陽去連讀",
+      "source": "vocabulary_db vocab_000023"
+    },
+    {
+      "id": "tts_ab_005",
+      "category": "baseline_word",
+      "hanji": "勞力",
+      "tailo_diacritic": "lóo-la̍t",
+      "tailo_numeric": "loo2-lat8",
+      "zh_tw": "感謝（較鄭重）",
+      "test_focus": "詞尾陽入 -t，塞音尾是否清楚不被吃掉",
+      "source": "《拍招呼》詞彙表"
+    },
+    {
+      "id": "tts_ab_006",
+      "category": "greeting",
+      "hanji": "逐家早起！",
+      "tailo_diacritic": "Ta̍k-ke tsá-khí!",
+      "tailo_numeric": "tak8-ke1 tsa2-khi2",
+      "zh_tw": "大家早安！",
+      "test_focus": "陽入變調＋上聲連讀；與《拍招呼》P3 舊旁白可直接對照",
+      "source": "《拍招呼》P3"
+    },
+    {
+      "id": "tts_ab_007",
+      "category": "greeting",
+      "hanji": "多謝你！",
+      "tailo_diacritic": "To-siā lí!",
+      "tailo_numeric": "to1-sia7 li2",
+      "zh_tw": "謝謝你！",
+      "test_focus": "短句語調自然度、句尾不拖音",
+      "source": "vocabulary_db vocab_000008＋《拍招呼》P4"
+    },
+    {
+      "id": "tts_ab_008",
+      "category": "greeting",
+      "hanji": "失禮，無要緊。",
+      "tailo_diacritic": "Sit-lé, bô iàu-kín.",
+      "tailo_numeric": "sit4-le2, bo5 iau3-kin2",
+      "zh_tw": "對不起，沒關係。",
+      "test_focus": "陰入 -t 變調＋一問一答的語氣停頓",
+      "source": "《拍招呼》P5"
+    },
+    {
+      "id": "tts_ab_009",
+      "category": "greeting",
+      "hanji": "再會，明仔載閣來！",
+      "tailo_diacritic": "Tsài-huē, bîn-á-tsài koh lâi!",
+      "tailo_numeric": "tsai3-hue7, bin5-a2-tsai3 koh4 lai5",
+      "zh_tw": "再見，明天再來！",
+      "test_focus": "句中停頓與句尾上揚語調",
+      "source": "《拍招呼》P6"
+    },
+    {
+      "id": "tts_ab_010",
+      "category": "checked_stop",
+      "hanji": "我腹肚枵，欲食物件。",
+      "tailo_diacritic": "Guá pak-tóo iau, beh tsia̍h mi̍h-kiānn.",
+      "tailo_numeric": "gua2 pak4-too2 iau1, beh4 tsiah8 mih8-kiann7",
+      "zh_tw": "我肚子餓，要吃東西。",
+      "test_focus": "連續入聲尾 -k/-h 四處；「物件」勿照華語念成「東西」",
+      "source": "vocabulary_db vocab_000033/000034/000004 組句"
+    },
+    {
+      "id": "tts_ab_011",
+      "category": "checked_stop",
+      "hanji": "讀冊了後，我去學校運動。",
+      "tailo_diacritic": "Tha̍k-tsheh liáu-āu, guá khì ha̍k-hāu ūn-tōng.",
+      "tailo_numeric": "thak8-tsheh4 liau2-au7, gua2 khi3 hak8-hau7 un7-tong7",
+      "zh_tw": "讀完書後，我去學校運動。",
+      "test_focus": "-k 入聲兩處＋陽去連讀的變調",
+      "source": "vocabulary_db vocab_000002/000023 組句"
+    },
+    {
+      "id": "tts_ab_012",
+      "category": "voiced_initial",
+      "hanji": "阿母去菜市仔買魚仔佮牛奶。",
+      "tailo_diacritic": "A-bú khì tshài-tshī-á bé hî-á kah gû-ling.",
+      "tailo_numeric": "a1-bu2 khi3 tshai3-tshi7-a2 be2 hi5-a2 kah4 gu5-ling1",
+      "zh_tw": "媽媽去菜市場買魚和牛奶。",
+      "test_focus": "濁聲母 b-/g-（華語沒有，易被念成 p-/k-）＋仔尾變調",
+      "source": "vocabulary_db vocab_000019/000003/000004/000015/000012 組句"
+    },
+    {
+      "id": "tts_ab_013",
+      "category": "voiced_initial",
+      "hanji": "今仔日先生教阮寫字。",
+      "tailo_diacritic": "Kin-á-ji̍t sian-sinn kà gún siá-jī.",
+      "tailo_numeric": "kin1-a2-jit8 sian1-sinn1 ka3 gun2 sia2-ji7",
+      "zh_tw": "今天老師教我們寫字。",
+      "test_focus": "j- 聲母兩處（ji̍t／jī，易被念成 l- 或華語 z-）；「先生」＝台語「老師」",
+      "source": "vocabulary_db vocab_000030/000024/000026 組句"
+    },
+    {
+      "id": "tts_ab_014",
+      "category": "nasal",
+      "hanji": "彼領衫真媠。",
+      "tailo_diacritic": "Hit niá sann tsin suí.",
+      "tailo_numeric": "hit4 nia2 sann1 tsin1 sui2",
+      "zh_tw": "那件衣服很漂亮。",
+      "test_focus": "鼻化韻 sann＋陰入 hit 變調",
+      "source": "教育部辭典常用句型"
+    },
+    {
+      "id": "tts_ab_015",
+      "category": "nasal",
+      "hanji": "這粒果子真甜。",
+      "tailo_diacritic": "Tsit lia̍p kué-tsí tsin tinn.",
+      "tailo_numeric": "tsit4 liap8 kue2-tsi2 tsin1 tinn1",
+      "zh_tw": "這顆水果很甜。",
+      "test_focus": "鼻化韻 tinn＋陽入 lia̍p；量詞「粒」是否正確",
+      "source": "vocabulary_db vocab_000013 組句"
+    },
+    {
+      "id": "tts_ab_016",
+      "category": "prosody",
+      "hanji": "我坐火車去公園。",
+      "tailo_diacritic": "Guá tsē hué-tshia khì kong-hn̂g.",
+      "tailo_numeric": "gua2 tse7 hue2-tshia1 khi3 kong1-hng5",
+      "zh_tw": "我坐火車去公園。",
+      "test_focus": "音節性鼻音 hn̂g（公園）＋整句變調流暢度",
+      "source": "vocabulary_db vocab_000039/000029 組句"
+    },
+    {
+      "id": "tts_ab_017",
+      "category": "prosody",
+      "hanji": "明仔載欲考試，今仔日愛讀冊。",
+      "tailo_diacritic": "Bîn-á-tsài beh khó-tshì, kin-á-ji̍t ài tha̍k-tsheh.",
+      "tailo_numeric": "bin5-a2-tsai3 beh4 kho2-tshi3, kin1-a2-jit8 ai3 thak8-tsheh4",
+      "zh_tw": "明天要考試，今天要讀書。",
+      "test_focus": "對句節奏；語法詞「欲／愛」是否輕短自然",
+      "source": "vocabulary_db vocab_000031/000025/000030/000002 組句"
+    },
+    {
+      "id": "tts_ab_018",
+      "category": "mandarin_trap",
+      "hanji": "我真愛講台語。",
+      "tailo_diacritic": "Guá tsin ài kóng Tâi-gí.",
+      "tailo_numeric": "gua2 tsin1 ai3 kong2 Tai5-gi2",
+      "zh_tw": "我很喜歡說台語。",
+      "test_focus": "「台語」讀 Tâi-gí 勿照華語念＋華語腔洩漏偵測（引擎若不懂台語會整句華語化）",
+      "source": "教育部辭典「台語」條目組句（原「臺灣台語」四字詞萌典未收，接音會缺字，故改用）"
+    },
+    {
+      "id": "tts_ab_019",
+      "category": "mandarin_trap",
+      "hanji": "阮先生真好，逐家攏愛伊。",
+      "tailo_diacritic": "Gún sian-sinn tsin hó, ta̍k-ke lóng ài i.",
+      "tailo_numeric": "gun2 sian1-sinn1 tsin1 ho2, tak8-ke1 long2 ai3 i1",
+      "zh_tw": "我們老師人很好，大家都喜歡他。",
+      "test_focus": "「先生」勿照華語念 xiānshēng；代名詞「伊」與「阮／攏」台語功能詞",
+      "source": "vocabulary_db vocab_000024 組句"
+    },
+    {
+      "id": "tts_ab_020",
+      "category": "proverb",
+      "hanji": "有禮數，逐家疼。",
+      "tailo_diacritic": "Ū lé-sòo, ta̍k-ke thiànn.",
+      "tailo_numeric": "u7 le2-soo3, tak8-ke1 thiann3",
+      "zh_tw": "有禮貌，大家疼愛。",
+      "test_focus": "《拍招呼》金句；鼻化 thiànn＋對稱句韻律，可與影片 P9 舊旁白對照",
+      "source": "《拍招呼》P9"
+    }
+  ]
+}

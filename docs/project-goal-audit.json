@@ -1,0 +1,770 @@
+{
+  "generated_at": "2026-07-04T16:48:44",
+  "ok": true,
+  "checks": [
+    {
+      "name": "official_repository_core_integrity",
+      "ok": true,
+      "message": "官方教材 catalog、本機檔案、PDF 抽文字與來源數量一致性檢查。",
+      "details": {
+        "missing_required_fields": 0,
+        "missing_local_files": 0,
+        "zero_byte_local_files": 0,
+        "downloadable_without_local": 0,
+        "confirmed_unavailable": 2,
+        "pdf_without_text": 0,
+        "duplicate_catalog_keys": 0,
+        "download_errors": 2,
+        "source_count_mismatches": 0
+      }
+    },
+    {
+      "name": "official_pdf_text_coverage",
+      "ok": true,
+      "message": "本機 PDF 必須全部完成抽文字。",
+      "details": {
+        "local_pdf_count": 50,
+        "pdf_text_covered_count": 50
+      }
+    },
+    {
+      "name": "official_analysis_artifacts",
+      "ok": true,
+      "message": "官方教材片段索引、素材庫與生成包必須存在。",
+      "details": {
+        "missing": []
+      }
+    },
+    {
+      "name": "natural_language_output_validation",
+      "ok": true,
+      "message": "自然語言教材產出資料夾必須通過既有驗證器。",
+      "details": {
+        "output_dir": "output\\smoke_full_goal_all_outputs",
+        "issues": []
+      }
+    },
+    {
+      "name": "natural_language_requested_all_core_outputs",
+      "ok": true,
+      "message": "煙霧產出需求必須同時包含考卷、簡報、影片、互動網站與測驗。",
+      "details": {
+        "requested_outputs": [
+          "exam",
+          "slides",
+          "video",
+          "interactive",
+          "quiz"
+        ],
+        "missing": []
+      }
+    },
+    {
+      "name": "natural_language_core_files_exist",
+      "ok": true,
+      "message": "五類核心產物檔案必須存在且非空。",
+      "details": {
+        "missing_or_empty": []
+      }
+    },
+    {
+      "name": "natural_language_video_success",
+      "ok": true,
+      "message": "影片必須實際嘗試並成功產生。",
+      "details": {
+        "requested_in_text": true,
+        "forced": true,
+        "attempted": true,
+        "success": true,
+        "path": "output\\smoke_full_goal_all_outputs\\lesson_video.mp4",
+        "skipped_reason": null
+      }
+    },
+    {
+      "name": "formal_output_readiness",
+      "ok": true,
+      "message": "正式輸出模式必須通過必要項目：真實 TTS、標音、生圖端點、影片工具鏈與本機輸出目錄。",
+      "details": {
+        "live_network": true,
+        "attempt_tts_sample": true,
+        "failed_required": []
+      }
+    },
+    {
+      "name": "formal_output_live_evidence",
+      "ok": true,
+      "message": "正式輸出 readiness 必須包含外部連線與真實 TTS 樣本證據。",
+      "details": {
+        "live_network": true,
+        "attempt_tts_sample": true
+      }
+    },
+    {
+      "name": "formal_generation_output_validation",
+      "ok": true,
+      "message": "正式上課包必須通過產出資料夾驗證器。",
+      "details": {
+        "output_dir": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo",
+        "issues": []
+      }
+    },
+    {
+      "name": "formal_generation_not_no_media",
+      "ok": true,
+      "message": "正式上課包不可使用 NoMedia 快速模式。",
+      "details": {
+        "skip_media": false
+      }
+    },
+    {
+      "name": "formal_generation_video_success",
+      "ok": true,
+      "message": "正式上課包必須實際產生影片。",
+      "details": {
+        "requested_in_text": true,
+        "forced": true,
+        "attempted": true,
+        "success": true,
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\lesson_video.mp4",
+        "skipped_reason": null
+      }
+    },
+    {
+      "name": "formal_generation_audio_files",
+      "ok": true,
+      "message": "正式上課包必須包含 TTS 音檔。",
+      "details": {
+        "audio_file_count": 7
+      }
+    },
+    {
+      "name": "formal_generation_image_files",
+      "ok": true,
+      "message": "正式上課包必須包含詞彙圖片；外部生圖失敗時可用本機 fallback 圖。",
+      "details": {
+        "image_file_count": 4
+      }
+    }
+  ],
+  "official_repository": {
+    "generated_at": "2026-07-04T04:26:02",
+    "catalog_count": 868,
+    "source_count": 3,
+    "local_file_count": 50,
+    "local_pdf_count": 50,
+    "local_total_bytes": 643384836,
+    "downloadable_attachment_count": 53,
+    "page_index_only_count": 814,
+    "intentionally_not_downloaded_count": 2,
+    "confirmed_unavailable_count": 2,
+    "pdf_text_index_count": 50,
+    "pdf_text_covered_count": 50,
+    "pdf_text_missing_count": 0,
+    "by_source": [
+      {
+        "name": "moe-mhi-108-minnan",
+        "count": 849
+      },
+      {
+        "name": "moe-language-tsuguan",
+        "count": 17
+      },
+      {
+        "name": "cirn-local-language",
+        "count": 2
+      }
+    ],
+    "by_material_type": [
+      {
+        "name": "學習資源",
+        "count": 821
+      },
+      {
+        "name": "教案／學習單",
+        "count": 28
+      },
+      {
+        "name": "語詞",
+        "count": 4
+      },
+      {
+        "name": "語句",
+        "count": 4
+      },
+      {
+        "name": "文章",
+        "count": 4
+      },
+      {
+        "name": "教材教法",
+        "count": 2
+      },
+      {
+        "name": "拼音",
+        "count": 2
+      },
+      {
+        "name": "大型壓縮檔",
+        "count": 2
+      },
+      {
+        "name": "入口說明",
+        "count": 1
+      }
+    ],
+    "by_resource_kind": [
+      {
+        "name": "video",
+        "count": 593
+      },
+      {
+        "name": "website_tool",
+        "count": 133
+      },
+      {
+        "name": "interactive",
+        "count": 43
+      },
+      {
+        "name": "audio",
+        "count": 34
+      },
+      {
+        "name": "learning_resource",
+        "count": 27
+      },
+      {
+        "name": "未分類",
+        "count": 19
+      },
+      {
+        "name": "text_reference",
+        "count": 19
+      }
+    ],
+    "source_checks": [
+      {
+        "source_id": "moe-mhi-108-minnan",
+        "name": "教育部本土語言資源網：108課綱本土語言數位教材專區（閩南語文）",
+        "status": "active",
+        "catalog_record_count": 849,
+        "expected_catalog_record_count": 849,
+        "catalog_record_count_matches_source": true,
+        "downloaded_pdf_count": 33,
+        "expected_downloaded_pdf_count": 33,
+        "downloaded_pdf_count_matches_source": true,
+        "last_checked": "2026-07-03"
+      },
+      {
+        "source_id": "moe-language-tsuguan",
+        "name": "教育部語文成果入口網：咱來學臺灣台語",
+        "status": "active",
+        "catalog_record_count": 17,
+        "expected_catalog_record_count": 17,
+        "catalog_record_count_matches_source": true,
+        "downloaded_pdf_count": 15,
+        "expected_downloaded_pdf_count": 15,
+        "downloaded_pdf_count_matches_source": true,
+        "last_checked": "2026-07-03"
+      },
+      {
+        "source_id": "cirn-local-language",
+        "name": "CIRN 國民中小學課程與教學資源整合平臺：本土語文相關資源",
+        "status": "active",
+        "catalog_record_count": 2,
+        "expected_catalog_record_count": 2,
+        "catalog_record_count_matches_source": true,
+        "downloaded_pdf_count": 2,
+        "expected_downloaded_pdf_count": 2,
+        "downloaded_pdf_count_matches_source": true,
+        "last_checked": "2026-07-03"
+      }
+    ],
+    "issue_counts": {
+      "missing_required_fields": 0,
+      "missing_local_files": 0,
+      "zero_byte_local_files": 0,
+      "downloadable_without_local": 0,
+      "confirmed_unavailable": 2,
+      "pdf_without_text": 0,
+      "duplicate_catalog_keys": 0,
+      "download_errors": 2,
+      "source_count_mismatches": 0
+    },
+    "issues": {
+      "missing_required_fields": [],
+      "missing_local_files": [],
+      "zero_byte_local_files": [],
+      "downloadable_without_local": [],
+      "confirmed_unavailable": [
+        {
+          "resource_id": "TSMhiResource-001205",
+          "title": "生活常用詞彙華台語對照",
+          "attachment_label": "PDF",
+          "attachment_url": "https://acdm.tcssh.tc.edu.tw/teach/parent_%20language/parent/book/book_2.pdf",
+          "download_error_note": "2026-07-04 原始主機 acdm.tcssh.tc.edu.tw DNS 無法解析；搜尋到舊站 acdm3.tcssh.tc.edu.tw，但原路徑與 parent_language 變體均只回 404 HTML，未取得 PDF。",
+          "last_download_attempted_at": "2026-07-04"
+        },
+        {
+          "resource_id": "TSMhiResource-003027",
+          "title": "《十二年國民基本教育臺灣台語文差異化教學補充教材（試用版）-國中階段》",
+          "attachment_label": "PDF",
+          "attachment_url": "https://cirn.moe.edu.tw/Upload/NEWS/638362678533318547.pdf",
+          "download_error_note": "2026-07-04 以 curl -L -k 直接重試 https://cirn.moe.edu.tw/Upload/NEWS/638362678533318547.pdf，連線被遠端重設，未取得 PDF；保留教育部本土語言資源網來源頁。",
+          "last_download_attempted_at": "2026-07-04"
+        }
+      ],
+      "pdf_without_text": [],
+      "duplicate_catalog_keys": [],
+      "download_errors": [
+        {
+          "timestamp": "2026-07-03T22:20:04",
+          "stage": "attachment_download",
+          "resource_id": "TSMhiResource-003027",
+          "url": "https://cirn.moe.edu.tw/Upload/NEWS/638362678533318547.pdf",
+          "message": "基礎連接已關閉: 無法為 SSL/TLS 安全通道建立信任關係。"
+        },
+        {
+          "timestamp": "2026-07-03T22:20:43",
+          "stage": "attachment_download",
+          "resource_id": "TSMhiResource-001205",
+          "url": "https://acdm.tcssh.tc.edu.tw/teach/parent_%20language/parent/book/book_2.pdf",
+          "message": "The remote name could not be resolved: 'acdm.tcssh.tc.edu.tw'"
+        }
+      ],
+      "source_count_mismatches": []
+    }
+  },
+  "generation_validation": {
+    "validated_at": "2026-07-04T16:48:44",
+    "output_dir": "output\\smoke_full_goal_all_outputs",
+    "ok": true,
+    "issues": [],
+    "details": {
+      "manifest": {
+        "topic": "有機菜蔬",
+        "grade": "國中七年級",
+        "outputs": [
+          "exam",
+          "slides",
+          "video",
+          "interactive",
+          "quiz"
+        ],
+        "skip_media": true,
+        "include_video": true
+      },
+      "lesson_structure": {
+        "path": "output\\smoke_full_goal_all_outputs\\lesson_structure.json",
+        "bytes": 78530,
+        "title": "情境會話：有機菜蔬",
+        "vocabulary_count": 4,
+        "dialogue_count": 3,
+        "question_count": 3,
+        "has_official_recommendations": true
+      },
+      "student_worksheet": {
+        "path": "output\\smoke_full_goal_all_outputs\\student_worksheet.docx",
+        "bytes": 37926,
+        "paragraph_count": 57,
+        "first_text": "臺語學習講義：情境會話：有機菜蔬"
+      },
+      "teacher_guide": {
+        "path": "output\\smoke_full_goal_all_outputs\\teacher_guide.docx",
+        "bytes": 36013,
+        "paragraph_count": 18,
+        "first_text": "臺語學習講義 (教師解答指導版)：情境會話：有機菜蔬"
+      },
+      "exam_paper": {
+        "path": "output\\smoke_full_goal_all_outputs\\exam_paper.docx",
+        "bytes": 36859,
+        "paragraph_count": 42,
+        "first_text": "臺語單元考卷：情境會話：有機菜蔬"
+      },
+      "exam_answer_key": {
+        "path": "output\\smoke_full_goal_all_outputs\\exam_answer_key.docx",
+        "bytes": 36100,
+        "paragraph_count": 21,
+        "first_text": "臺語單元考卷解答：情境會話：有機菜蔬"
+      },
+      "slides": {
+        "path": "output\\smoke_full_goal_all_outputs\\teaching_slides.pptx",
+        "bytes": 40264,
+        "slide_count": 8
+      },
+      "interactive_website": {
+        "path": "output\\smoke_full_goal_all_outputs\\interactive_website.html",
+        "bytes": 48543,
+        "has_official_materials": true
+      },
+      "teacher_review_report": {
+        "path": "output\\smoke_full_goal_all_outputs\\teacher_review_report.md",
+        "bytes": 8423
+      },
+      "topic_alignment": {
+        "topic": "有機菜蔬",
+        "terms": [
+          "有機菜蔬",
+          "有機",
+          "機菜",
+          "菜蔬"
+        ],
+        "matched_terms": [
+          "有機菜蔬",
+          "有機",
+          "機菜",
+          "菜蔬"
+        ],
+        "is_aligned": true
+      },
+      "quiz_bank": {
+        "path": "output\\smoke_full_goal_all_outputs\\quiz_bank.json",
+        "bytes": 4502,
+        "question_count": 3,
+        "official_extension_count": 3
+      },
+      "quiz_teacher_key": {
+        "path": "output\\smoke_full_goal_all_outputs\\quiz_teacher_key.md",
+        "bytes": 1230
+      },
+      "video_generation": {
+        "requested_in_text": true,
+        "forced": true,
+        "attempted": true,
+        "success": true,
+        "path": "output\\smoke_full_goal_all_outputs\\lesson_video.mp4",
+        "skipped_reason": null
+      },
+      "video": {
+        "path": "output\\smoke_full_goal_all_outputs\\lesson_video.mp4",
+        "bytes": 2630147
+      }
+    }
+  },
+  "formal_output_readiness": {
+    "generated_at": "2026-07-04T16:48:31",
+    "ok": true,
+    "live_network": true,
+    "attempt_tts_sample": true,
+    "checks": [
+      {
+        "name": "config_exists",
+        "ok": true,
+        "severity": "error",
+        "message": "正式輸出需能讀取專案 config.json。",
+        "details": {
+          "path": "config.json"
+        }
+      },
+      {
+        "name": "config_json_valid",
+        "ok": true,
+        "severity": "error",
+        "message": "config.json 必須是可解析的 JSON。",
+        "details": {}
+      },
+      {
+        "name": "output_base_dir_configured",
+        "ok": true,
+        "severity": "error",
+        "message": "正式影音與圖片輸出需設定 output.base_dir。",
+        "details": {
+          "base_dir": "C:\\Users\\user\\2026本土語\\output"
+        }
+      },
+      {
+        "name": "output_base_dir_local",
+        "ok": true,
+        "severity": "error",
+        "message": "大型輸出應放在本機目錄，避免 Google Drive 同步大量影音與圖片。",
+        "details": {
+          "base_dir": "C:\\Users\\user\\2026本土語\\output",
+          "project_root": "G:\\我的雲端硬碟\\2026本土語"
+        }
+      },
+      {
+        "name": "output_base_dir_writable",
+        "ok": true,
+        "severity": "error",
+        "message": "正式輸出目錄必須可寫入。",
+        "details": {
+          "base_dir": "C:\\Users\\user\\2026本土語\\output"
+        }
+      },
+      {
+        "name": "tts_provider_not_dummy",
+        "ok": true,
+        "severity": "error",
+        "message": "正式上課版本不能只使用靜音 dummy TTS。",
+        "details": {
+          "provider": "voxcpm"
+        }
+      },
+      {
+        "name": "voxcpm_python_exists",
+        "ok": true,
+        "severity": "error",
+        "message": "VoxCPM2 provider 需要可執行的語音專案 Python。",
+        "details": {
+          "path": "C:\\2026Antigravity_語音\\.venv\\Scripts\\python.exe"
+        }
+      },
+      {
+        "name": "voxcpm_script_exists",
+        "ok": true,
+        "severity": "error",
+        "message": "VoxCPM2 provider 需要 clone_batch.py 腳本。",
+        "details": {
+          "path": "C:\\2026Antigravity_語音\\clone_batch.py"
+        }
+      },
+      {
+        "name": "voxcpm_voice_configured",
+        "ok": true,
+        "severity": "error",
+        "message": "VoxCPM2 provider 需要指定三師爸台語聲音。",
+        "details": {
+          "voice": "三師爸台語"
+        }
+      },
+      {
+        "name": "voxcpm_python_runs",
+        "ok": true,
+        "severity": "error",
+        "message": "語音專案 Python 必須可執行。",
+        "details": {
+          "ok": true,
+          "output": "Python 3.12.11"
+        }
+      },
+      {
+        "name": "tts_sample_generation",
+        "ok": true,
+        "severity": "error",
+        "message": "VoxCPM2 必須直接產生真實非空音檔，不可降級為 dummy。",
+        "details": {
+          "path": "C:\\Users\\user\\AppData\\Local\\Temp\\taigi_readiness_tts.wav",
+          "size": 337964,
+          "returncode": 0,
+          "duration": 3.52
+        }
+      },
+      {
+        "name": "piauim_provider_enabled",
+        "ok": true,
+        "severity": "error",
+        "message": "正式輸出應啟用漢字轉臺羅標音，降低 LLM 拼音錯誤。",
+        "details": {
+          "provider": "ithuan"
+        }
+      },
+      {
+        "name": "piauim_live_sample",
+        "ok": true,
+        "severity": "error",
+        "message": "標音服務需能替樣本文字產生臺羅。",
+        "details": {
+          "sample": "菜市仔",
+          "kip": "Tshài-tshī-á"
+        }
+      },
+      {
+        "name": "image_generation_endpoint_reachable",
+        "ok": true,
+        "severity": "error",
+        "message": "AI Horde 免費匿名生圖端點需可連線。",
+        "details": {
+          "status_code": 200
+        }
+      },
+      {
+        "name": "video_tool_node",
+        "ok": true,
+        "severity": "error",
+        "message": "教學影片生成需要 node 可執行。",
+        "details": {
+          "command": "C:\\Program Files\\nodejs\\node.EXE",
+          "version": "v24.14.0"
+        }
+      },
+      {
+        "name": "video_tool_npm",
+        "ok": true,
+        "severity": "error",
+        "message": "教學影片生成需要 npm 可執行。",
+        "details": {
+          "command": "C:\\Program Files\\nodejs\\npm.cmd",
+          "version": "11.9.0"
+        }
+      },
+      {
+        "name": "video_tool_npx",
+        "ok": true,
+        "severity": "error",
+        "message": "教學影片生成需要 npx 可執行。",
+        "details": {
+          "command": "C:\\Program Files\\nodejs\\npx.cmd",
+          "version": "11.9.0"
+        }
+      },
+      {
+        "name": "video_tool_ffmpeg",
+        "ok": true,
+        "severity": "error",
+        "message": "教學影片生成需要 ffmpeg 可執行。",
+        "details": {
+          "command": "C:\\Users\\user\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.1.2-full_build\\bin\\ffmpeg.EXE",
+          "version": "ffmpeg version 8.1.2-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers"
+        }
+      },
+      {
+        "name": "video_tool_ffprobe",
+        "ok": true,
+        "severity": "error",
+        "message": "教學影片生成需要 ffprobe 可執行。",
+        "details": {
+          "command": "C:\\Users\\user\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.1.2-full_build\\bin\\ffprobe.EXE",
+          "version": "ffprobe version 8.1.2-full_build-www.gyan.dev Copyright (c) 2007-2026 the FFmpeg developers"
+        }
+      },
+      {
+        "name": "playwright_cached_in_temp",
+        "ok": true,
+        "severity": "warning",
+        "message": "Playwright 應安裝於系統暫存目錄，避免 node_modules 進入 Google Drive。",
+        "details": {
+          "path": "C:\\Users\\user\\AppData\\Local\\Temp\\taigi-video-render\\node_modules\\playwright",
+          "temp_render_dir": "C:\\Users\\user\\AppData\\Local\\Temp\\taigi-video-render"
+        }
+      },
+      {
+        "name": "official_assets_ready_for_generation",
+        "ok": true,
+        "severity": "error",
+        "message": "正式輸出需能引用已整理官方教材與生成素材。",
+        "details": {
+          "missing": []
+        }
+      }
+    ]
+  },
+  "formal_generation_validation": {
+    "validated_at": "2026-07-04T16:48:44",
+    "output_dir": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo",
+    "ok": true,
+    "issues": [],
+    "details": {
+      "manifest": {
+        "topic": "有機菜蔬",
+        "grade": "國中七年級",
+        "outputs": [
+          "exam",
+          "slides",
+          "video",
+          "interactive",
+          "quiz"
+        ],
+        "skip_media": false,
+        "include_video": true
+      },
+      "lesson_structure": {
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\lesson_structure.json",
+        "bytes": 78794,
+        "title": "情境會話：有機菜蔬",
+        "vocabulary_count": 4,
+        "dialogue_count": 3,
+        "question_count": 3,
+        "has_official_recommendations": true
+      },
+      "student_worksheet": {
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\student_worksheet.docx",
+        "bytes": 143030,
+        "paragraph_count": 57,
+        "first_text": "臺語學習講義：情境會話：有機菜蔬"
+      },
+      "teacher_guide": {
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\teacher_guide.docx",
+        "bytes": 36013,
+        "paragraph_count": 18,
+        "first_text": "臺語學習講義 (教師解答指導版)：情境會話：有機菜蔬"
+      },
+      "exam_paper": {
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\exam_paper.docx",
+        "bytes": 36859,
+        "paragraph_count": 42,
+        "first_text": "臺語單元考卷：情境會話：有機菜蔬"
+      },
+      "exam_answer_key": {
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\exam_answer_key.docx",
+        "bytes": 36105,
+        "paragraph_count": 21,
+        "first_text": "臺語單元考卷解答：情境會話：有機菜蔬"
+      },
+      "slides": {
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\teaching_slides.pptx",
+        "bytes": 40269,
+        "slide_count": 8
+      },
+      "interactive_website": {
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\interactive_website.html",
+        "bytes": 49193,
+        "has_official_materials": true
+      },
+      "teacher_review_report": {
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\teacher_review_report.md",
+        "bytes": 8424
+      },
+      "topic_alignment": {
+        "topic": "有機菜蔬",
+        "terms": [
+          "有機菜蔬",
+          "有機",
+          "機菜",
+          "菜蔬"
+        ],
+        "matched_terms": [
+          "有機菜蔬",
+          "有機",
+          "機菜",
+          "菜蔬"
+        ],
+        "is_aligned": true
+      },
+      "quiz_bank": {
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\quiz_bank.json",
+        "bytes": 4502,
+        "question_count": 3,
+        "official_extension_count": 3
+      },
+      "quiz_teacher_key": {
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\quiz_teacher_key.md",
+        "bytes": 1230
+      },
+      "video_generation": {
+        "requested_in_text": true,
+        "forced": true,
+        "attempted": true,
+        "success": true,
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\lesson_video.mp4",
+        "skipped_reason": null
+      },
+      "video": {
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\lesson_video.mp4",
+        "bytes": 4371827
+      }
+    },
+    "formal_media": {
+      "audio_file_count": 7,
+      "image_file_count": 4,
+      "skip_media": false,
+      "video_generation": {
+        "requested_in_text": true,
+        "forced": true,
+        "attempted": true,
+        "success": true,
+        "path": "C:\\Users\\user\\2026本土語\\output\\formal_full_goal_demo\\lesson_video.mp4",
+        "skipped_reason": null
+      }
+    }
+  }
+}

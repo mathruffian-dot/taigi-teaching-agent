@@ -30,7 +30,7 @@ class TaigiOutlineGenerator:
 
     def _load_config(self, filepath: str) -> Dict[str, Any]:
         if os.path.exists(filepath):
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, "r", encoding="utf-8-sig") as f:
                 try:
                     return json.load(f)
                 except Exception:
@@ -97,7 +97,22 @@ class TaigiOutlineGenerator:
         syllabus_matches = self.retriever.retrieve_syllabus_by_grade(grade)
         syllabus_ref = [f"[{s.get('code')}] {s.get('description')}" for s in syllabus_matches[:5]]
 
-        # 3. 偵測並選擇 LLM 模型
+        # 3. 透過已下載官方教材找可引用的教學內容片段
+        if hasattr(self.retriever, "retrieve_official_material_bank"):
+            official_matches = self.retriever.retrieve_official_material_bank(prompt, limit=3)
+        else:
+            official_matches = []
+        if not official_matches and hasattr(self.retriever, "retrieve_official_material_snippets"):
+            official_matches = self.retriever.retrieve_official_material_snippets(prompt, limit=3)
+        if not official_matches:
+            official_matches = self.retriever.retrieve_official_materials(prompt, limit=3)
+        official_ref = [
+            f"{m.get('title')}／{m.get('attachment_label')}（{m.get('learning_stage')}，{','.join(m.get('material_kinds', []) or [])}）：{m.get('snippet')}"
+            for m in official_matches
+            if m.get("snippet")
+        ]
+
+        # 4. 偵測並選擇 LLM 模型
         try:
             model = self._choose_model()
             # 呼叫 Ollama 生成
@@ -107,20 +122,26 @@ class TaigiOutlineGenerator:
                 grade=grade,
                 duration=duration_minutes,
                 vocab_ref=vocab_ref,
-                syllabus_ref=syllabus_ref
+                syllabus_ref=syllabus_ref,
+                official_ref=official_ref
             )
             # 驗證生成的拼音品質，不合格則降級
             if self._validate_outline(result):
+                result["official_materials"] = official_matches
                 return result
             else:
-                return self._generate_via_mock(prompt, grade, duration_minutes)
+                result = self._generate_via_mock(prompt, grade, duration_minutes)
+                result["official_materials"] = official_matches
+                return result
         except (ConnectionError, requests.exceptions.RequestException) as e:
             # 智慧降級：Ollama 未啟動或失敗，執行 Mock 模擬生成
-            return self._generate_via_mock(prompt, grade, duration_minutes)
+            result = self._generate_via_mock(prompt, grade, duration_minutes)
+            result["official_materials"] = official_matches
+            return result
 
     def _generate_via_ollama(
         self, model: str, prompt: str, grade: str, duration: int,
-        vocab_ref: List[str], syllabus_ref: List[str]
+        vocab_ref: List[str], syllabus_ref: List[str], official_ref: List[str]
     ) -> Dict[str, Any]:
         """
         向 Ollama 發送 POST 請求，以 JSON 格式生成教材。
@@ -134,6 +155,8 @@ class TaigiOutlineGenerator:
             ref_text += f"參考詞彙庫已收錄台語詞: {', '.join(vocab_ref)}\n"
         if syllabus_ref:
             ref_text += f"參考108課綱指標:\n" + "\n".join(syllabus_ref) + "\n"
+        if official_ref:
+            ref_text += f"已下載官方教材參考片段:\n" + "\n".join(official_ref) + "\n"
 
         system_instruction = f"""你是一位專業的臺灣台語教師，為 {grade} 學生設計一份台語教材大綱 JSON。
 
@@ -301,6 +324,119 @@ JSON Schema：
         """
         print(f"[!] 偵測到本地 Ollama 伺服器未啟動或無模型。自動切換至離線模擬大綱生成器...")
         
+        if "身體" in prompt or "五官" in prompt or "身軀" in prompt:
+            return {
+                "title": f"情境會話：{prompt}",
+                "grade": grade,
+                "duration_minutes": duration,
+                "vocabulary": [
+                    {"hanji": "身軀", "tailo_numeric": "sin1-khu1", "zh_tw": "身體", "review_status": "draft"},
+                    {"hanji": "目睭", "tailo_numeric": "bak8-tsiu1", "zh_tw": "眼睛", "review_status": "draft"},
+                    {"hanji": "喙", "tailo_numeric": "tshui3", "zh_tw": "嘴巴", "review_status": "draft"},
+                    {"hanji": "手", "tailo_numeric": "tshiu2", "zh_tw": "手", "review_status": "draft"},
+                    {"hanji": "跤", "tailo_numeric": "kha1", "zh_tw": "腳", "review_status": "draft"}
+                ],
+                "dialogues": [
+                    {
+                        "role": "老師",
+                        "hanji": "咱今仔日欲來學身軀佮五官。",
+                        "tailo_numeric": "lan2 kin1-a2-jit8 beh4 lai5 oh8 sin1-khu1 kah4 goo7-kuan1.",
+                        "zh_tw": "我們今天要來學身體和五官。"
+                    },
+                    {
+                        "role": "學生",
+                        "hanji": "老師，目睭是看物件的所在。",
+                        "tailo_numeric": "lau7-su1, bak8-tsiu1 si7 khuann3 mih8-kiann7 e5 soo2-tsai7.",
+                        "zh_tw": "老師，眼睛是看東西的地方。"
+                    },
+                    {
+                        "role": "老師",
+                        "hanji": "真好，喙會當講話，手會當寫字。",
+                        "tailo_numeric": "tsin1 ho2, tshui3 e7-tang3 kong2-ue7, tshiu2 e7-tang3 sia2-ji7.",
+                        "zh_tw": "很好，嘴巴可以說話，手可以寫字。"
+                    }
+                ],
+                "questions": [
+                    {
+                        "id": "q1",
+                        "question": "「目睭」的華語意思是什麼？",
+                        "options": ["眼睛", "嘴巴", "手", "腳"],
+                        "answer_index": 0,
+                        "explanation": "「目睭」是臺語的眼睛。"
+                    },
+                    {
+                        "id": "q2",
+                        "question": "哪一個詞表示「嘴巴」？",
+                        "options": ["喙", "跤", "身軀", "目睭"],
+                        "answer_index": 0,
+                        "explanation": "「喙」在臺語中可表示嘴巴。"
+                    },
+                    {
+                        "id": "q3",
+                        "question": "「身軀」的臺羅數字調是什麼？",
+                        "options": ["sin1-khu1", "bak8-tsiu1", "tshiu2", "kha1"],
+                        "answer_index": 0,
+                        "explanation": "「身軀」標音為 sin-khu。"
+                    }
+                ]
+            }
+
+        if "菜蔬" in prompt or "有機" in prompt or "蔬菜" in prompt:
+            return {
+                "title": f"情境會話：{prompt}",
+                "grade": grade,
+                "duration_minutes": duration,
+                "vocabulary": [
+                    {"hanji": "菜蔬", "tailo_numeric": "tshai3-se1", "zh_tw": "蔬菜", "review_status": "draft"},
+                    {"hanji": "有機", "tailo_numeric": "u7-ki1", "zh_tw": "有機", "review_status": "draft"},
+                    {"hanji": "田園", "tailo_numeric": "tshan5-hng5", "zh_tw": "田園", "review_status": "draft"},
+                    {"hanji": "種作", "tailo_numeric": "tsing3-tsok4", "zh_tw": "種植耕作", "review_status": "draft"}
+                ],
+                "dialogues": [
+                    {
+                        "role": "老師",
+                        "hanji": "今仔日咱欲認捌有機菜蔬。",
+                        "tailo_numeric": "kin1-a2-jit8 lan2 beh4 jin7-bat4 u7-ki1 tshai3-se1.",
+                        "zh_tw": "今天我們要認識有機蔬菜。"
+                    },
+                    {
+                        "role": "學生",
+                        "hanji": "有機菜蔬是按怎種作的？",
+                        "tailo_numeric": "u7-ki1 tshai3-se1 si7 an2-tsuann2 tsing3-tsok4 e5?",
+                        "zh_tw": "有機蔬菜是怎麼種植的？"
+                    },
+                    {
+                        "role": "老師",
+                        "hanji": "咱會當觀察田園，閣學菜蔬的講法。",
+                        "tailo_numeric": "lan2 e7-tang3 kuan1-tshat4 tshan5-hng5, koh4 oh8 tshai3-se1 e5 kong2-huat4.",
+                        "zh_tw": "我們可以觀察田園，也學蔬菜的說法。"
+                    }
+                ],
+                "questions": [
+                    {
+                        "id": "q1",
+                        "question": "本單元主題是哪一項？",
+                        "options": ["有機菜蔬", "身體五官", "交通工具", "天氣變化"],
+                        "answer_index": 0,
+                        "explanation": "本單元以有機菜蔬為主題。"
+                    },
+                    {
+                        "id": "q2",
+                        "question": "「菜蔬」的華語意思是什麼？",
+                        "options": ["蔬菜", "水果", "點心", "飲料"],
+                        "answer_index": 0,
+                        "explanation": "「菜蔬」就是蔬菜。"
+                    },
+                    {
+                        "id": "q3",
+                        "question": "哪一個詞和農田觀察最相關？",
+                        "options": ["田園", "喙", "手", "讀冊"],
+                        "answer_index": 0,
+                        "explanation": "田園可作為觀察有機菜蔬種植情境的詞彙。"
+                    }
+                ]
+            }
+
         # 針對菜市仔或購物主題
         if "菜市" in prompt or "買" in prompt or "錢" in prompt:
             return {
@@ -447,6 +583,7 @@ if __name__ == "__main__":
     parser.add_argument("--grade", default="國中七年級", help="適用年級")
     parser.add_argument("--output", help="輸出之 JSON 大綱路徑")
     parser.add_argument("--compile", action="store_true", help="是否直接鏈接教材生成器編譯成講義與互動網站")
+    parser.add_argument("--no-media", action="store_true", help="編譯教材時跳過音訊與圖片生成")
     args = parser.parse_args()
 
     generator = TaigiOutlineGenerator(args.config)
@@ -471,11 +608,11 @@ if __name__ == "__main__":
     if args.compile:
         print("\n[*] 鏈接教材編譯程序中 (MaterialGenerator)...")
         compiler = MaterialGenerator(args.config)
-        compiler.generate_all(out_path)
+        material_output_dir = compiler.generate_all(out_path, skip_media=args.no_media)
         
         print("\n[*] 鏈接教學影片生成器中 (TaigiVideoGenerator)...")
-        lesson_structure_path = "output/lesson_structure.json"
-        video_output_path = "output/lesson_video.mp4"
+        lesson_structure_path = os.path.join(material_output_dir, "lesson_structure.json")
+        video_output_path = os.path.join(material_output_dir, "lesson_video.mp4")
         
         video_gen = TaigiVideoGenerator(args.config)
         video_success = video_gen.generate_video(lesson_structure_path, video_output_path)

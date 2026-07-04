@@ -4,6 +4,7 @@ pillow>=10.3.0
 requests>=2.31.0
 jinja2>=3.1.4          # material_generator 互動網頁樣板引擎（templates/interactive_website.html.j2）
 python-docx>=1.1.2
+python-pptx>=1.0.2
 pytest>=8.2.0
 fastapi>=0.111.0
 uvicorn[standard]>=0.30.0   # [standard] 提供 reload=True 所需的 watchfiles

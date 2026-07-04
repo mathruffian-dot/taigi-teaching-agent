@@ -17,7 +17,26 @@ class TaigiVideoGenerator:
     def __init__(self, config_path: str = "config.json"):
         self.config_path = config_path
         self.temp_render_dir = Path(tempfile.gettempdir()) / "taigi-video-render"
+        self.node_cmd = self._resolve_command("node")
+        self.npm_cmd = self._resolve_command("npm", prefer_cmd=True)
+        self.npx_cmd = self._resolve_command("npx", prefer_cmd=True)
+        self.ffmpeg_cmd = self._resolve_command("ffmpeg")
+        self.ffprobe_cmd = self._resolve_command("ffprobe")
         self._ensure_temp_setup()
+
+    def _resolve_command(self, name: str, prefer_cmd: bool = False) -> str:
+        candidates = []
+        if sys.platform.startswith("win") and prefer_cmd:
+            candidates.append(f"{name}.cmd")
+        candidates.append(name)
+        for candidate in candidates:
+            resolved = shutil.which(candidate)
+            if resolved:
+                return resolved
+        return candidates[0]
+
+    def _has_command(self, command: str) -> bool:
+        return bool(shutil.which(command) or os.path.exists(command))
 
     def _ensure_temp_setup(self):
         """
@@ -25,32 +44,38 @@ class TaigiVideoGenerator:
         """
         try:
             self.temp_render_dir.mkdir(parents=True, exist_ok=True)
+            if not self._has_command(self.node_cmd):
+                print("[!] 警告: 找不到 Node.js，教學影片無法錄製。")
+                return
+            if not self._has_command(self.npm_cmd):
+                print("[!] 警告: 找不到 npm，無法初始化 Playwright。")
+                return
+            if not self._has_command(self.npx_cmd):
+                print("[!] 警告: 找不到 npx，無法安裝 Playwright Chromium。")
+                return
             package_json = self.temp_render_dir / "package.json"
             if not package_json.exists():
                 print("[*] 初始化 Temp 目錄的 npm...")
                 subprocess.run(
-                    ["npm", "init", "-y"],
+                    [self.npm_cmd, "init", "-y"],
                     cwd=str(self.temp_render_dir),
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
-                    shell=sys.platform.startswith("win")
                 )
             
             node_modules = self.temp_render_dir / "node_modules" / "playwright"
             if not node_modules.exists():
                 print("[*] 正在 Temp 目錄安裝 Playwright (避開 GDrive)...")
                 subprocess.run(
-                    ["npm", "install", "playwright"],
+                    [self.npm_cmd, "install", "playwright"],
                     cwd=str(self.temp_render_dir),
                     check=True,
-                    shell=sys.platform.startswith("win")
                 )
                 print("[*] 正在安裝 Playwright Chromium 瀏覽器...")
                 subprocess.run(
-                    ["npx", "playwright", "install", "chromium"],
+                    [self.npx_cmd, "playwright", "install", "chromium"],
                     cwd=str(self.temp_render_dir),
                     check=True,
-                    shell=sys.platform.startswith("win")
                 )
         except Exception as e:
             print(f"[!] 警告: 初始化 Playwright 環境時發生異常: {e}")
@@ -64,12 +89,20 @@ class TaigiVideoGenerator:
         try:
             # 確保使用 Unicode 安全的引號
             cmd = [
-                "ffprobe", "-v", "error", 
+                self.ffprobe_cmd, "-v", "error",
                 "-show_entries", "format=duration", 
                 "-of", "default=noprint_wrappers=1:nokey=1", 
                 file_path
             ]
-            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+            result = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=True,
+            )
             duration = float(result.stdout.strip())
             return duration
         except Exception as e:
@@ -93,6 +126,14 @@ class TaigiVideoGenerator:
         if not os.path.exists(lesson_json_path):
             print(f"[-] 錯誤: 找不到輸入的教材大綱 JSON: {lesson_json_path}")
             return False
+        for label, command in {
+            "Node.js": self.node_cmd,
+            "FFmpeg": self.ffmpeg_cmd,
+            "FFprobe": self.ffprobe_cmd,
+        }.items():
+            if not self._has_command(command):
+                print(f"[-] 錯誤: 找不到 {label}，無法產生教學影片。")
+                return False
             
         with open(lesson_json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -124,7 +165,7 @@ class TaigiVideoGenerator:
         # 產生封面靜音檔
         cover_wav = temp_audio_dir / f"block_{block_idx:03d}.wav"
         subprocess.run(
-            ["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", str(cover_dur), "-ar", "44100", "-ac", "2", str(cover_wav)],
+            [self.ffmpeg_cmd, "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", str(cover_dur), "-ar", "44100", "-ac", "2", str(cover_wav)],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
         audio_blocks.append(str(cover_wav))
@@ -153,7 +194,7 @@ class TaigiVideoGenerator:
             vocab_wav = temp_audio_dir / f"block_{block_idx:03d}.wav"
             if os.path.exists(audio_full_path):
                 subprocess.run([
-                    "ffmpeg", "-y", "-i", audio_full_path, 
+                    self.ffmpeg_cmd, "-y", "-i", audio_full_path,
                     "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", 
                     "-filter_complex", "[0:a]aresample=44100[a0];[a0][1:a]concat=n=2:v=0:a=1[a]", 
                     "-map", "[a]", "-t", str(total_dur), "-ar", "44100", "-ac", "2", str(vocab_wav)
@@ -161,7 +202,7 @@ class TaigiVideoGenerator:
             else:
                 # 若無音訊，生成靜音
                 subprocess.run([
-                    "ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", 
+                    self.ffmpeg_cmd, "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
                     "-t", str(total_dur), "-ar", "44100", "-ac", "2", str(vocab_wav)
                 ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 
@@ -195,14 +236,14 @@ class TaigiVideoGenerator:
                 dia_wav = temp_audio_dir / f"block_{block_idx:03d}.wav"
                 if os.path.exists(audio_full_path):
                     subprocess.run([
-                        "ffmpeg", "-y", "-i", audio_full_path, 
+                        self.ffmpeg_cmd, "-y", "-i", audio_full_path,
                         "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", 
                         "-filter_complex", "[0:a]aresample=44100[a0];[a0][1:a]concat=n=2:v=0:a=1[a]", 
                         "-map", "[a]", "-t", str(total_dur), "-ar", "44100", "-ac", "2", str(dia_wav)
                     ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 else:
                     subprocess.run([
-                        "ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", 
+                        self.ffmpeg_cmd, "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
                         "-t", str(total_dur), "-ar", "44100", "-ac", "2", str(dia_wav)
                     ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     
@@ -229,7 +270,7 @@ class TaigiVideoGenerator:
         })
         review_wav = temp_audio_dir / f"block_{block_idx:03d}.wav"
         subprocess.run(
-            ["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", str(review_dur), "-ar", "44100", "-ac", "2", str(review_wav)],
+            [self.ffmpeg_cmd, "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", str(review_dur), "-ar", "44100", "-ac", "2", str(review_wav)],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
         audio_blocks.append(str(review_wav))
@@ -246,7 +287,7 @@ class TaigiVideoGenerator:
         })
         ending_wav = temp_audio_dir / f"block_{block_idx:03d}.wav"
         subprocess.run(
-            ["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", str(ending_dur), "-ar", "44100", "-ac", "2", str(ending_wav)],
+            [self.ffmpeg_cmd, "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-t", str(ending_dur), "-ar", "44100", "-ac", "2", str(ending_wav)],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
         audio_blocks.append(str(ending_wav))
@@ -268,7 +309,7 @@ class TaigiVideoGenerator:
                 
         master_audio_path = self.temp_render_dir / "master_audio.mp3"
         subprocess.run([
-            "ffmpeg", "-y", "-f", "concat", "-safe", "0", 
+            self.ffmpeg_cmd, "-y", "-f", "concat", "-safe", "0",
             "-i", str(concat_txt_path), 
             "-c:a", "libmp3lame", "-b:a", "192k", 
             str(master_audio_path)
@@ -723,13 +764,14 @@ const path = require('path');
         env["NODE_PATH"] = str(self.temp_render_dir / "node_modules")
         
         rec_res = subprocess.run(
-            ["node", "record.js"],
+            [self.node_cmd, "record.js"],
             cwd=str(self.temp_render_dir),
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            shell=sys.platform.startswith("win")
+            encoding="utf-8",
+            errors="replace",
         )
         
         if rec_res.returncode != 0:
@@ -758,7 +800,7 @@ const path = require('path');
         
         # 合併指令 (加入 -map 0:v:0 -map 1:a:0 防止 WebM 預設覆蓋音訊，加上最長/最短切除)
         mux_cmd = [
-            "ffmpeg", "-y", 
+            self.ffmpeg_cmd, "-y",
             "-i", webm_path, 
             "-i", str(master_audio_path),
             "-map", "0:v:0", 
@@ -772,7 +814,14 @@ const path = require('path');
             output_mp4_path
         ]
         
-        mux_res = subprocess.run(mux_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        mux_res = subprocess.run(
+            mux_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
         if mux_res.returncode != 0:
             print(f"[-] FFmpeg 合併失敗: {mux_res.stderr}")
             return False

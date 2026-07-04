@@ -1,0 +1,47 @@
+[
+  {
+    "source_id": "moe-mhi-108-minnan",
+    "name": "教育部本土語言資源網：108課綱本土語言數位教材專區（閩南語文）",
+    "owner": "教育部",
+    "base_url": "https://mhi.moe.edu.tw/eduCloud/learning-resource/?keyword=&lang=%2F003%2F&level=&media=&stage=",
+    "language": "臺灣台語／閩南語文",
+    "scope": "108課綱本土語言數位教材專區中語言別為閩南語文的教材、教案、學習單與數位資源。",
+    "current_known_count": 835,
+    "collected_resource_count": 835,
+    "catalog_record_count": 849,
+    "classified_resource_count": 835,
+    "downloaded_pdf_count": 33,
+    "classification_summary_path": "data/official_materials/analysis/mhi_page_resource_summary.json",
+    "download_policy_note": "優先下載頁面明列的 PDF、DOCX、PPTX 等附件；影音與大型媒體先建索引再評估是否下載。",
+    "status": "active",
+    "last_checked": "2026-07-03"
+  },
+  {
+    "source_id": "moe-language-tsuguan",
+    "name": "教育部語文成果入口網：咱來學臺灣台語",
+    "owner": "教育部",
+    "base_url": "https://language.moe.gov.tw/files/people_files/tsuguan-book.pdf",
+    "language": "臺灣台語",
+    "scope": "教育部《咱來學臺灣台語》系列教材，共 7 冊，含網路學習版與書面製作版。",
+    "current_known_count": 7,
+    "catalog_record_count": 17,
+    "downloaded_pdf_count": 15,
+    "download_policy_note": "可公開下載 PDF；需保留 113 年 8 月改版說明與來源 PDF。",
+    "status": "active",
+    "last_checked": "2026-07-03"
+  },
+  {
+    "source_id": "cirn-local-language",
+    "name": "CIRN 國民中小學課程與教學資源整合平臺：本土語文相關資源",
+    "owner": "教育部國民及學前教育署／國家教育研究院相關資源平台",
+    "base_url": "https://cirn.k12ea.gov.tw/",
+    "language": "本土語文（含閩南語文）",
+    "scope": "課綱、教材教法、學習素材與教師支援資源。",
+    "current_known_count": null,
+    "catalog_record_count": 2,
+    "downloaded_pdf_count": 2,
+    "download_policy_note": "先登錄資源頁與附件，再依官方附件格式下載。",
+    "status": "active",
+    "last_checked": "2026-07-03"
+  }
+]

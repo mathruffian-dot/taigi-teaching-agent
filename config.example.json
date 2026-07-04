@@ -12,17 +12,23 @@
     "repo": "taigi-teaching-agent"
   },
   "output": {
-    "_comment": "大型產出（音訊/影片/圖片）建議改存本機目錄，避免 Google Drive 同步大量大檔失敗。未設定時預設為專案內的 \"output\"。範例：\"C:\\\\Users\\\\<你>\\\\2026本土語\\\\output\"",
+    "_comment": "大型產出（音訊/影片/圖片）建議改存本機目錄，避免 Google Drive 同步大量大檔失敗。未設定時預設為專案內的 \"output\"。支援 %USERPROFILE% 等環境變數與 ~（config.json 跨電腦同步，路徑勿寫死使用者名稱）。範例：\"%USERPROFILE%\\\\2026本土語\\\\output\"",
     "base_dir": "output"
   },
   "tts": {
-    "_comment": "provider 可選：concat（接音合成，串接教育部官方單詞音檔，需 ffmpeg，推薦）／mms（本地 facebook/mms-tts-nan 神經合成，需 torch+transformers，CC-BY-NC 限非商業）／yating（雲端 API，需 api_key）／dummy（靜音佔位）",
+    "_comment": "provider 可選：voxcpm（可用 input_mode=hanji_tailo 餵漢字+臺羅）／ithuan（意傳媠聲免費線上合成，輸入臺羅 KIP，限流 1 IP 每分鐘 3 句，正式量產前洽意傳）／concat（接音合成，串接教育部官方單詞音檔，需 ffmpeg，推薦）／mms（本地 facebook/mms-tts-nan 神經合成，需 torch+transformers，CC-BY-NC 限非商業）／yating（雲端 API，需 api_key；台語聲：tai_female_1 雅婷/tai_male_1 家豪/tai_female_2 意晴，僅支援 16K）／dummy（靜音佔位）",
     "provider": "concat",
+    "ithuan_interval_sec": 21,
+    "yating_voice": "tai_female_1",
     "mms_model": "facebook/mms-tts-nan",
     "concat_gap_sec": 0.06,
     "concat_phrase_gap_sec": 0.22,
     "concat_trim_silence": false,
     "api_key": ""
+  },
+  "image": {
+    "_comment": "AI Horde 免費生圖若排隊超過 max_wait_sec，會自動改用本機 fallback 插圖。",
+    "max_wait_sec": 15
   },
   "stt": {
     "provider": "whisper",

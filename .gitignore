@@ -43,6 +43,15 @@ package-lock.json
 video/**/renders/
 video/**/assets/narration/
 
+# Python 虛擬環境
+.venv/
+
+# 官方教材下載區（僅供本地研究保存，不隨 repo 散布；來源清單與蒐集流程見
+# data/official_materials/sources.json 與 docs/official-materials-workflow.md）
+data/official_materials/raw/
+data/official_materials/processed/
+data/official_materials/analysis/
+
 # 輸出與建置快取
 dist/
 build/

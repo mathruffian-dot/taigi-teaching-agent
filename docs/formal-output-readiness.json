@@ -1,0 +1,207 @@
+{
+  "generated_at": "2026-07-04T16:48:31",
+  "ok": true,
+  "live_network": true,
+  "attempt_tts_sample": true,
+  "checks": [
+    {
+      "name": "config_exists",
+      "ok": true,
+      "severity": "error",
+      "message": "正式輸出需能讀取專案 config.json。",
+      "details": {
+        "path": "config.json"
+      }
+    },
+    {
+      "name": "config_json_valid",
+      "ok": true,
+      "severity": "error",
+      "message": "config.json 必須是可解析的 JSON。",
+      "details": {}
+    },
+    {
+      "name": "output_base_dir_configured",
+      "ok": true,
+      "severity": "error",
+      "message": "正式影音與圖片輸出需設定 output.base_dir。",
+      "details": {
+        "base_dir": "C:\\Users\\user\\2026本土語\\output"
+      }
+    },
+    {
+      "name": "output_base_dir_local",
+      "ok": true,
+      "severity": "error",
+      "message": "大型輸出應放在本機目錄，避免 Google Drive 同步大量影音與圖片。",
+      "details": {
+        "base_dir": "C:\\Users\\user\\2026本土語\\output",
+        "project_root": "G:\\我的雲端硬碟\\2026本土語"
+      }
+    },
+    {
+      "name": "output_base_dir_writable",
+      "ok": true,
+      "severity": "error",
+      "message": "正式輸出目錄必須可寫入。",
+      "details": {
+        "base_dir": "C:\\Users\\user\\2026本土語\\output"
+      }
+    },
+    {
+      "name": "tts_provider_not_dummy",
+      "ok": true,
+      "severity": "error",
+      "message": "正式上課版本不能只使用靜音 dummy TTS。",
+      "details": {
+        "provider": "voxcpm"
+      }
+    },
+    {
+      "name": "voxcpm_python_exists",
+      "ok": true,
+      "severity": "error",
+      "message": "VoxCPM2 provider 需要可執行的語音專案 Python。",
+      "details": {
+        "path": "C:\\2026Antigravity_語音\\.venv\\Scripts\\python.exe"
+      }
+    },
+    {
+      "name": "voxcpm_script_exists",
+      "ok": true,
+      "severity": "error",
+      "message": "VoxCPM2 provider 需要 clone_batch.py 腳本。",
+      "details": {
+        "path": "C:\\2026Antigravity_語音\\clone_batch.py"
+      }
+    },
+    {
+      "name": "voxcpm_voice_configured",
+      "ok": true,
+      "severity": "error",
+      "message": "VoxCPM2 provider 需要指定三師爸台語聲音。",
+      "details": {
+        "voice": "三師爸台語"
+      }
+    },
+    {
+      "name": "voxcpm_python_runs",
+      "ok": true,
+      "severity": "error",
+      "message": "語音專案 Python 必須可執行。",
+      "details": {
+        "ok": true,
+        "output": "Python 3.12.11"
+      }
+    },
+    {
+      "name": "tts_sample_generation",
+      "ok": true,
+      "severity": "error",
+      "message": "VoxCPM2 必須直接產生真實非空音檔，不可降級為 dummy。",
+      "details": {
+        "path": "C:\\Users\\user\\AppData\\Local\\Temp\\taigi_readiness_tts.wav",
+        "size": 337964,
+        "returncode": 0,
+        "duration": 3.52
+      }
+    },
+    {
+      "name": "piauim_provider_enabled",
+      "ok": true,
+      "severity": "error",
+      "message": "正式輸出應啟用漢字轉臺羅標音，降低 LLM 拼音錯誤。",
+      "details": {
+        "provider": "ithuan"
+      }
+    },
+    {
+      "name": "piauim_live_sample",
+      "ok": true,
+      "severity": "error",
+      "message": "標音服務需能替樣本文字產生臺羅。",
+      "details": {
+        "sample": "菜市仔",
+        "kip": "Tshài-tshī-á"
+      }
+    },
+    {
+      "name": "image_generation_endpoint_reachable",
+      "ok": true,
+      "severity": "error",
+      "message": "AI Horde 免費匿名生圖端點需可連線。",
+      "details": {
+        "status_code": 200
+      }
+    },
+    {
+      "name": "video_tool_node",
+      "ok": true,
+      "severity": "error",
+      "message": "教學影片生成需要 node 可執行。",
+      "details": {
+        "command": "C:\\Program Files\\nodejs\\node.EXE",
+        "version": "v24.14.0"
+      }
+    },
+    {
+      "name": "video_tool_npm",
+      "ok": true,
+      "severity": "error",
+      "message": "教學影片生成需要 npm 可執行。",
+      "details": {
+        "command": "C:\\Program Files\\nodejs\\npm.cmd",
+        "version": "11.9.0"
+      }
+    },
+    {
+      "name": "video_tool_npx",
+      "ok": true,
+      "severity": "error",
+      "message": "教學影片生成需要 npx 可執行。",
+      "details": {
+        "command": "C:\\Program Files\\nodejs\\npx.cmd",
+        "version": "11.9.0"
+      }
+    },
+    {
+      "name": "video_tool_ffmpeg",
+      "ok": true,
+      "severity": "error",
+      "message": "教學影片生成需要 ffmpeg 可執行。",
+      "details": {
+        "command": "C:\\Users\\user\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.1.2-full_build\\bin\\ffmpeg.EXE",
+        "version": "ffmpeg version 8.1.2-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers"
+      }
+    },
+    {
+      "name": "video_tool_ffprobe",
+      "ok": true,
+      "severity": "error",
+      "message": "教學影片生成需要 ffprobe 可執行。",
+      "details": {
+        "command": "C:\\Users\\user\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.1.2-full_build\\bin\\ffprobe.EXE",
+        "version": "ffprobe version 8.1.2-full_build-www.gyan.dev Copyright (c) 2007-2026 the FFmpeg developers"
+      }
+    },
+    {
+      "name": "playwright_cached_in_temp",
+      "ok": true,
+      "severity": "warning",
+      "message": "Playwright 應安裝於系統暫存目錄，避免 node_modules 進入 Google Drive。",
+      "details": {
+        "path": "C:\\Users\\user\\AppData\\Local\\Temp\\taigi-video-render\\node_modules\\playwright",
+        "temp_render_dir": "C:\\Users\\user\\AppData\\Local\\Temp\\taigi-video-render"
+      }
+    },
+    {
+      "name": "official_assets_ready_for_generation",
+      "ok": true,
+      "severity": "error",
+      "message": "正式輸出需能引用已整理官方教材與生成素材。",
+      "details": {
+        "missing": []
+      }
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 # 臺語教材 AI Agent 統一指令入口 (python -m taigi)
 #
 # 子指令：
+#   doctor    環境健檢（Python/ffmpeg/依賴/設定檔/意傳/萌典連線，附修復指引）
 #   tts       台語語音合成（預設意傳媠聲；自動標音、內建限流與降級）
 #   piau      漢字 → 臺羅拼音（意傳標音，萌典備援）
 #   check     教材內容檢核（華語用字、漢字↔臺羅音節一致性）
@@ -36,6 +37,122 @@ def _emit(args, data: dict, human_lines):
     else:
         for line in human_lines:
             print(line)
+
+
+# ==================== doctor ====================
+def cmd_doctor(args) -> int:
+    """
+    環境健檢：新使用者（或新機器）第一個指令。每項 ✅/⚠️/❌ 並附修復方式；
+    「必要」項目全過 exit 0，否則 exit 1（⚠️ 選配項不影響 exit code）。
+    """
+    import shutil as _shutil
+    import platform
+    try:  # 萌典連線沿用專案的寬鬆 TLS 行為，關掉對應警告避免干擾健檢輸出
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    except Exception:
+        pass
+
+    results = []  # (等級, 名稱, 狀態, 說明)
+
+    def check(name, required, ok, detail, fix=""):
+        mark = "✅" if ok else ("❌" if required else "⚠️")
+        results.append({"name": name, "required": required, "ok": bool(ok),
+                        "mark": mark, "detail": detail, "fix": fix})
+
+    # 1. Python 版本
+    py_ok = sys.version_info >= (3, 10)
+    check("Python >= 3.10", True, py_ok, platform.python_version(),
+          "請安裝 Python 3.10 以上並重建 .venv（.\\setup.ps1）")
+
+    # 2. 核心依賴
+    for mod, pkg in [("requests", "requests"), ("jinja2", "Jinja2"),
+                     ("docx", "python-docx"), ("pptx", "python-pptx"), ("PIL", "Pillow")]:
+        try:
+            __import__(mod)
+            check(f"套件 {pkg}", True, True, "已安裝")
+        except ImportError:
+            check(f"套件 {pkg}", True, False, "未安裝",
+                  "執行 .\\setup.ps1 或 pip install -r requirements.txt")
+
+    # 3. ffmpeg（語音轉檔、接音合成必要）
+    ff = _shutil.which("ffmpeg")
+    check("ffmpeg", True, bool(ff), ff or "PATH 中找不到",
+          "winget install Gyan.FFmpeg（或 https://ffmpeg.org 下載後加入 PATH）")
+
+    # 4. config.json
+    cfg_exists = os.path.exists(args.config)
+    check("config.json", True, cfg_exists,
+          args.config if cfg_exists else "不存在",
+          "Copy-Item config.example.json config.json")
+    base_dir_txt = "（無 config）"
+    if cfg_exists:
+        try:
+            with open(args.config, "r", encoding="utf-8-sig") as f:
+                cfg = json.load(f)
+            from utils import resolve_output_base_dir
+            base = resolve_output_base_dir(cfg)
+            os.makedirs(base, exist_ok=True)
+            writable = os.access(base, os.W_OK)
+            base_dir_txt = base
+            check("output.base_dir 可寫入", True, writable, base,
+                  "確認 config.json 的 output.base_dir 指向可寫入的本機目錄")
+        except Exception as e:
+            check("config.json 可解析", True, False, str(e),
+                  "檢查 JSON 格式（可與 config.example.json 比對）")
+
+    # 5. 網路服務（教材語音來源）
+    def ping(name, required, fn, fix):
+        try:
+            ok, detail = fn()
+        except Exception as e:
+            ok, detail = False, str(e)[:80]
+        check(name, required, ok, detail, fix)
+
+    def ping_ithuan():
+        import requests
+        r = requests.post("https://hokbu.ithuan.tw/tau", data={"taibun": "台語"}, timeout=10)
+        return r.status_code == 200, f"HTTP {r.status_code}（標音／整句合成用）"
+
+    def ping_moedict():
+        import requests
+        r = requests.get("https://www.moedict.tw/t/%E5%A4%9A%E8%AC%9D.json",
+                         verify=False, timeout=10)
+        return r.status_code == 200, f"HTTP {r.status_code}（教育部官方音檔用）"
+
+    ping("意傳標音／媠聲服務", False, ping_ithuan,
+         "離線時 tts 會降級為 concat／dummy；教材文字類產出不受影響")
+    ping("萌典（教育部音檔）", False, ping_moedict,
+         "離線時單詞音檔無法下載（已下載過的有快取）")
+
+    # 6. Ollama（選配：AI 大綱生成）
+    def ping_ollama():
+        import requests
+        r = requests.get("http://localhost:11434/api/tags", timeout=3)
+        n = len(r.json().get("models", [])) if r.status_code == 200 else 0
+        return r.status_code == 200, f"運行中，{n} 個模型"
+    ping("Ollama（選配）", False, ping_ollama,
+         "未裝也能用：大綱生成會改用離線 Mock。要裝見 README「安裝臺語文字模型」")
+
+    # 輸出
+    if getattr(args, "json", False):
+        print(json.dumps({"ok": all(r["ok"] for r in results if r["required"]),
+                          "checks": results}, ensure_ascii=False))
+    else:
+        print("🩺 taigi 環境健檢\n" + "─" * 46)
+        for r in results:
+            print(f" {r['mark']} {r['name']}：{r['detail']}")
+            if not r["ok"] and r["fix"]:
+                print(f"    ↳ 修復：{r['fix']}")
+        required_ok = all(r["ok"] for r in results if r["required"])
+        print("─" * 46)
+        if required_ok:
+            print("✅ 必要項目全部通過！建議的第一條指令（黃金路徑）：")
+            print("   .venv\\Scripts\\python -m taigi generate "
+                  "--case tests/test_materials/test_case_market_001.json --no-media")
+        else:
+            print("❌ 有必要項目未通過，請依上方「修復」指引處理後重跑 doctor。")
+    return 0 if all(r["ok"] for r in results if r["required"]) else 1
 
 
 # ==================== tts ====================
@@ -128,6 +245,10 @@ def main() -> int:
     parser.add_argument("--config", default=os.path.join(PROJECT_ROOT, "config.json"),
                         help="設定檔路徑（預設：專案根目錄 config.json）")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser("doctor", help="環境健檢（新機器第一個指令；附修復指引）")
+    p.add_argument("--json", action="store_true", help="輸出 JSON")
+    p.set_defaults(func=cmd_doctor)
 
     p = sub.add_parser("tts", help="台語語音合成（預設意傳媠聲，免費、限流 3 句/分鐘已內建節流）")
     p.add_argument("text", help="台語漢字句子")

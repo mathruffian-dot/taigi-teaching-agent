@@ -68,6 +68,7 @@
 **不必閱讀 `src/` 原始碼**：本專案的核心功能都可透過 `python -m taigi` 使用（於專案根目錄、以 `.venv` 的 Python 執行）。正確用法與護欄（意傳 TTS 須餵臺羅、限流節流、失敗降級）已內建於底層模組。
 
 ```powershell
+.venv\Scripts\python -m taigi doctor                                  # 環境健檢（新機器先跑這個）
 .venv\Scripts\python -m taigi --help                                  # 指令總覽
 .venv\Scripts\python -m taigi tts "逐家早起" -o out.wav               # 語音合成（預設意傳媠聲）
 .venv\Scripts\python -m taigi tts "食飯" -o out.wav --provider concat # 官方接音（單詞/跟讀）

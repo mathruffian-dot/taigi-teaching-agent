@@ -20,12 +20,21 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 # 2. 建立自己的設定檔（config.json 不進 git）
 Copy-Item config.example.json config.json
 
-# 3. 開始使用
-.venv\Scripts\python -m taigi --help
+# 3. 環境健檢（每一項都有修復指引）
+.venv\Scripts\python -m taigi doctor
+
+# 4. 黃金路徑：兩分鐘生出第一份教材（範例課《去菜市仔買物件》）
+.venv\Scripts\python -m taigi generate --case tests/test_materials/test_case_market_001.json --no-media
+
+# 5. 加上語音與插圖（需網路）、再生成互動遊戲網站
+.venv\Scripts\python -m taigi generate --case tests/test_materials/test_case_market_001.json
+.venv\Scripts\python -m taigi games --lesson <上一步的輸出資料夾>
 ```
 
-- **必要**：Python 3.10+、ffmpeg（語音合成轉檔用）
+- **必要**：Python 3.10+、ffmpeg（語音合成轉檔用）——`taigi doctor` 會逐項檢查
 - **選配**：本機 Ollama＋`SARC-Taigi-LLM-12b`（AI 大綱生成用；缺模型會自動降級或改用 Mock）
+- **離線行為**：意傳／萌典連不上時，語音自動降級（已下載的單詞音檔有快取；文字類教材不受影響）
+- **注意**：本 repo 不含官方教材下載檔與生成成品——clone 到的是「工廠＋種子知識庫」，教材由你自己生成；官方教材請照 `data/official_materials/sources.json` 用 `scripts/collect-*.ps1` 自行蒐集
 - **建議**：`config.json` 的 `output.base_dir` 指向本機目錄（支援 `%USERPROFILE%`），大型音訊／影片產出不要放雲端同步資料夾
 - 給 AI Agent 的完整操作手冊在 [`AGENTS.md`](AGENTS.md)——任何 agent 讀完即可操作本專案
 

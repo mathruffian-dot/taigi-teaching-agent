@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ lesson_title }}｜組句練習</title>
+<style>
+:root{--paper:#FAF7EE;--ink:#1A1A1A;--teal:#0E7C7B;--coral:#E36414;--good:#1E8449;--bad:#C0392B;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--paper);font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif;color:var(--ink);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 14px;
+  touch-action:manipulation;}
+header{display:flex;align-items:center;gap:16px;width:100%;max-width:900px;margin-bottom:12px;}
+header a{color:var(--teal);text-decoration:none;font-weight:900;font-size:1.2em;}
+h1{font-size:1.3em;font-weight:900;flex:1;}
+#prog{background:var(--teal);color:#fff;border-radius:18px;padding:4px 18px;font-weight:900;}
+.hint{color:#888;font-size:.9em;margin-bottom:8px;text-align:center;}
+#zh{color:var(--teal);font-weight:700;font-size:1.1em;margin-bottom:16px;text-align:center;}
+#answer{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center;
+  min-height:86px;width:100%;max-width:900px;padding:14px;background:#fff;
+  border:4px dashed #cbbfa5;border-radius:18px;margin-bottom:20px;}
+#answer.good{border:4px solid var(--good);background:#EAF5EC;}
+#answer.bad{animation:shake .4s;border-color:var(--bad);}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#answer .ph{color:#c9c0aa;font-size:1em;}
+#poolWrap{width:100%;max-width:900px;padding:14px;background:#F2EDDC;border-radius:18px;margin-bottom:18px;}
+#pool{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;min-height:58px;}
+.blk{background:var(--ink);color:#fff;font-size:1.35em;font-weight:900;padding:10px 20px;border-radius:12px;
+  cursor:pointer;user-select:none;box-shadow:0 4px 0 rgba(0,0,0,.25);}
+.blk i{display:block;font-style:italic;font-weight:700;font-size:.6em;color:#f0b48c;margin-top:2px;}
+#answer .blk{background:var(--teal);}
+#checkBtn{font-size:1.15em;font-weight:900;padding:10px 44px;border:none;border-radius:14px;
+  background:var(--coral);color:#fff;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.15);}
+#checkBtn:disabled{opacity:.4;cursor:default;}
+.overlay{position:fixed;inset:0;background:rgba(26,26,26,.9);display:flex;
+  align-items:center;justify-content:center;flex-direction:column;color:#fff;text-align:center;z-index:200;}
+.overlay.hide{display:none;}
+.overlay .big{font-size:2.6em;font-weight:900;}
+.overlay .sc{font-size:1.25em;color:#C8941F;margin:16px 0;white-space:pre-line;}
+.overlay button{font-size:1.2em;font-weight:900;padding:12px 42px;border:none;border-radius:14px;
+  background:var(--coral);color:#fff;cursor:pointer;margin-top:8px;}
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">←</a>
+  <h1>🧱 組句練習｜{{ lesson_title }}</h1>
+  <div id="prog"></div>
+</header>
+<div class="hint">照華語提示，揤詞塊排做著的台語句（揤答案列的詞塊會退回）</div>
+<div id="zh"></div>
+<div id="answer"><span class="ph">詞塊排佇遮</span></div>
+<div id="poolWrap"><div id="pool"></div></div>
+<button id="checkBtn" disabled>檢查</button>
+
+<div class="overlay hide" id="endOverlay">
+  <div class="big">🎉 攏總組好矣！</div>
+  <div class="sc" id="endScore"></div>
+  <button onclick="location.reload()">閣玩一擺</button>
+</div>
+
+<script>
+const DIALOGUES = {{ dialogues_json }};
+const shuffle = a => a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
+const answer = document.getElementById('answer');
+const pool = document.getElementById('pool');
+const zhEl = document.getElementById('zh');
+const progEl = document.getElementById('prog');
+const checkBtn = document.getElementById('checkBtn');
+let cur = -1, wrongChecks = 0, audio = new Audio(), locked = false;
+const t0 = Date.now();
+
+function makeBlk(b){
+  const d = document.createElement('div');
+  d.className = 'blk';
+  d.innerHTML = `${b.hanji}<i>${b.tailo}</i>`;
+  d.dataset.hanji = b.hanji;
+  d.addEventListener('click', () => {
+    if (locked) return;
+    (d.parentNode === pool ? placeIn(answer, d) : placeIn(pool, d));
+    refresh();
+  });
+  return d;
+}
+function placeIn(container, blk){ container.appendChild(blk); }
+function refresh(){
+  const ph = answer.querySelector('.ph');
+  const n = answer.querySelectorAll('.blk').length;
+  if (ph) ph.style.display = n ? 'none' : '';
+  checkBtn.disabled = pool.querySelectorAll('.blk').length !== 0;
+}
+
+function next(){
+  cur += 1;
+  progEl.textContent = `${Math.min(cur+1, DIALOGUES.length)} / ${DIALOGUES.length}`;
+  if (cur >= DIALOGUES.length) return finish();
+  const d = DIALOGUES[cur];
+  audio = new Audio(d.audio);
+  zhEl.textContent = `（${d.role}）${d.zh}`;
+  answer.classList.remove('good','bad');
+  answer.innerHTML = '<span class="ph">詞塊排佇遮</span>';
+  pool.innerHTML = '';
+  shuffle([...d.blocks]).forEach(b => pool.appendChild(makeBlk(b)));
+  locked = false;
+  refresh();
+}
+
+checkBtn.addEventListener('click', () => {
+  if (locked) return;
+  const got = [...answer.querySelectorAll('.blk')].map(b=>b.dataset.hanji).join('|');
+  const want = DIALOGUES[cur].blocks.map(b=>b.hanji).join('|');
+  if (got === want) {
+    locked = true;
+    answer.classList.add('good');
+    audio.currentTime = 0; audio.play().catch(()=>{});   // 組著＝聽規句台語
+    const wait = Math.max(2200, (audio.duration || 2) * 1000 + 600);
+    setTimeout(next, wait);
+  } else {
+    wrongChecks += 1;
+    answer.classList.add('bad');
+    setTimeout(()=>answer.classList.remove('bad'), 500);
+  }
+});
+
+function finish(){
+  document.getElementById('endScore').textContent =
+    `${DIALOGUES.length} 句攏組好　·　組毋著 ${wrongChecks} 擺　·　用時 ${Math.round((Date.now()-t0)/1000)} 秒`;
+  document.getElementById('endOverlay').classList.remove('hide');
+  submitScore({ game: 'builder', lesson: {{ lesson_title|tojson }},
+                sentences: DIALOGUES.length, wrong_checks: wrongChecks,
+                seconds: Math.round((Date.now()-t0)/1000), ts: new Date().toISOString() });
+}
+function submitScore(payload){
+  const q = JSON.parse(localStorage.getItem('taigi_score_queue') || '[]');
+  q.push(payload);
+  localStorage.setItem('taigi_score_queue', JSON.stringify(q));
+}
+
+next();
+</script>
+</body>
+</html>

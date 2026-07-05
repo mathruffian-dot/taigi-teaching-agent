@@ -22,11 +22,14 @@ from jinja2 import Environment, FileSystemLoader
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates", "games")
 
-# M1 遊戲清單；M2 擴充 memory/bingo/mole/builder
 GAME_META = {
     "match": {"title": "拖拉配對", "tailo": "Thua-lâi phòe-tùi", "desc": "共漢字卡拖去對的臺羅遐", "icon": "🧩"},
     "listen": {"title": "聽音配對", "tailo": "Thiann im phòe-tùi", "desc": "揤喇叭聽聲，共圖卡拖去對的聲遐", "icon": "👂"},
+    "memory": {"title": "翻牌記持", "tailo": "Píng pâi kì-tî", "desc": "翻兩張，揣出字佮聲的配對", "icon": "🃏"},
+    "builder": {"title": "組句練習", "tailo": "Tsoo kù liān-si̍p", "desc": "共詞塊排做著的句", "icon": "🧱"},
 }
+
+_CJK = lambda s: any("一" <= c <= "鿿" for c in s)
 
 
 class GameGenerator:
@@ -70,6 +73,45 @@ class GameGenerator:
                           "audio": mp3_rel, "image": img_rel})
         return items
 
+    def _collect_dialogues(self, lesson: Dict[str, Any], lesson_dir: str, out_dir: str) -> List[Dict[str, Any]]:
+        """
+        整理組句遊戲用的對話：以意傳標音的「分詞」把漢字句切成詞塊（漢字＋臺羅成對），
+        並將整句音檔轉 mp3 當完成獎勵。標音失敗或缺音檔的句子略過。
+        """
+        try:
+            from tailo.piauim import Piauim
+        except ImportError:
+            sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from tailo.piauim import Piauim
+        piauim = Piauim({})
+
+        out = []
+        for idx, d in enumerate(lesson.get("dialogues", [])):
+            hanji = d.get("hanji", "")
+            audio_rel = d.get("audio_file", "")
+            src_audio = os.path.join(lesson_dir, audio_rel) if audio_rel else ""
+            if not (hanji and src_audio and os.path.exists(src_audio)):
+                continue
+            r = piauim.piau(hanji)
+            if not r or not r.get("hanlo"):
+                print(f"  [!] 組句略過第 {idx + 1} 句（標音失敗）：{hanji}")
+                continue
+            # 分詞格式：`阿-媽｜A-má ，｜, 咱｜lán ...` → 取漢字含 CJK 的詞塊
+            blocks = []
+            for tok in r["hanlo"].split():
+                hz, _, tl = tok.partition("｜")
+                hz = hz.replace("-", "")
+                if _CJK(hz):
+                    blocks.append({"hanji": hz, "tailo": tl})
+            if len(blocks) < 3:
+                continue
+            mp3_rel = f"audio/{os.path.splitext(os.path.basename(audio_rel))[0]}.mp3"
+            if not self._convert_audio(src_audio, os.path.join(out_dir, mp3_rel)):
+                continue
+            out.append({"role": d.get("role", ""), "hanji": hanji, "zh": d.get("zh_tw", ""),
+                        "audio": mp3_rel, "blocks": blocks})
+        return out
+
     def generate(self, lesson_dir: str, templates: List[str] = None, output_dir: str = None) -> str:
         lesson_path = os.path.join(lesson_dir, "lesson_structure.json")
         if not os.path.exists(lesson_path):
@@ -87,10 +129,16 @@ class GameGenerator:
         if len(vocab) < 3:
             raise RuntimeError(f"可用詞彙只有 {len(vocab)} 個，至少需要 3 個（漢字＋臺羅＋音檔齊備）")
 
+        dialogues = self._collect_dialogues(lesson, lesson_dir, out_dir) if "builder" in templates else []
+        if "builder" in templates and not dialogues:
+            print("  [!] 無可用對話（標音或音檔缺），略過組句練習")
+            templates = [t for t in templates if t != "builder"]
+
         ctx_base = {
             "lesson_title": title,
             "grade": lesson.get("grade", ""),
             "vocab_json": json.dumps(vocab, ensure_ascii=False),
+            "dialogues_json": json.dumps(dialogues, ensure_ascii=False),
             "vocab": vocab,
         }
         built = []

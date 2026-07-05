@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ lesson_title }}｜翻牌記持</title>
+<style>
+:root{--paper:#FAF7EE;--ink:#1A1A1A;--teal:#0E7C7B;--coral:#E36414;--good:#1E8449;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--paper);font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif;color:var(--ink);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 14px;}
+header{display:flex;align-items:center;gap:16px;width:100%;max-width:820px;margin-bottom:14px;}
+header a{color:var(--teal);text-decoration:none;font-weight:900;font-size:1.2em;}
+h1{font-size:1.3em;font-weight:900;flex:1;}
+#score{background:var(--teal);color:#fff;border-radius:18px;padding:4px 18px;font-weight:900;}
+#score.minus{background:var(--bad,#C0392B);}
+.hint{color:#888;font-size:.9em;margin-bottom:18px;}
+/* 亂翻冷卻 */
+#cooldown{position:fixed;inset:0;background:rgba(26,26,26,.82);display:none;
+  align-items:center;justify-content:center;flex-direction:column;color:#fff;z-index:150;text-align:center;}
+#cooldown.show{display:flex;}
+#cooldown .big{font-size:2.2em;font-weight:900;}
+#cooldown .cnt{font-size:3.4em;font-weight:900;color:var(--coral);margin-top:12px;}
+#board{display:grid;grid-template-columns:repeat(4,minmax(120px,160px));gap:16px;justify-content:center;}
+.cardw{perspective:800px;height:150px;}
+.card{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .45s;cursor:pointer;}
+.card.flip{transform:rotateY(180deg);}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 5px 0 rgba(0,0,0,.12);}
+.back{background:var(--teal);color:#fff;font-size:2.4em;font-weight:900;}
+.front{background:#fff;transform:rotateY(180deg);border:4px solid transparent;padding:6px;}
+.front .hz{font-size:1.9em;font-weight:900;}
+.front .spk{font-size:2.6em;}
+.front .tailo{font-style:italic;color:var(--coral);font-weight:700;font-size:.95em;
+  min-height:1.3em;visibility:hidden;margin-top:4px;}
+.card.matched .front{border-color:var(--good);background:#EAF5EC;}
+.card.matched .tailo{visibility:visible;}
+.card.matched{cursor:default;}
+#doneOverlay{position:fixed;inset:0;background:rgba(26,26,26,.88);display:none;
+  align-items:center;justify-content:center;flex-direction:column;color:#fff;text-align:center;z-index:200;}
+#doneOverlay.show{display:flex;}
+#doneOverlay .big{font-size:2.8em;font-weight:900;}
+#doneOverlay .sc{font-size:1.25em;color:#C8941F;margin:18px 0;}
+#doneOverlay button{font-size:1.2em;font-weight:900;padding:12px 40px;border:none;border-radius:14px;
+  background:var(--coral);color:#fff;cursor:pointer;}
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">←</a>
+  <h1>🃏 翻牌記持｜{{ lesson_title }}</h1>
+  <div id="score">0 分</div>
+</header>
+<div class="hint">翻兩張：「漢字卡」愛配「🔊 聲音卡」——配著 +10、翻毋著 −2，莫烏白翻！</div>
+<div id="board"></div>
+
+<div id="cooldown">
+  <div class="big">🧊 連紲翻毋著三擺！<br>先想一下，聽予清楚</div>
+  <div class="cnt" id="cdNum">3</div>
+</div>
+
+<div id="doneOverlay">
+  <div class="big">🏆 攏總揣著矣！</div>
+  <div class="sc" id="finalScore"></div>
+  <button onclick="location.reload()">閣玩一擺</button>
+</div>
+
+<script>
+const VOCAB = {{ vocab_json }};
+const shuffle = a => a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
+const board = document.getElementById('board');
+const scoreEl = document.getElementById('score');
+let first = null, lock = false, moves = 0, matched = 0, score = 0, wrong = 0, streakWrong = 0;
+const t0 = Date.now();
+
+function setScore(delta){
+  score = Math.max(0, score + delta);
+  scoreEl.textContent = score + ' 分';
+  if (delta < 0) { scoreEl.classList.add('minus'); setTimeout(()=>scoreEl.classList.remove('minus'), 500); }
+}
+// 連紲翻毋著三擺 → 冷卻 3 秒（防止烏白翻）
+function cooldown(){
+  lock = true;
+  const ov = document.getElementById('cooldown');
+  const num = document.getElementById('cdNum');
+  ov.classList.add('show');
+  let n = 3;
+  num.textContent = n;
+  const timer = setInterval(() => {
+    n -= 1;
+    if (n <= 0) { clearInterval(timer); ov.classList.remove('show'); lock = false; }
+    else num.textContent = n;
+  }, 1000);
+  streakWrong = 0;
+}
+
+// 每個詞兩張卡：文字卡 ＋ 聲音卡（翻開就播）
+const cards = shuffle(VOCAB.flatMap(v => [
+  { hanji: v.hanji, kind: 'text', tailo: v.tailo, audio: v.audio },
+  { hanji: v.hanji, kind: 'audio', tailo: v.tailo, audio: v.audio },
+]));
+
+cards.forEach(c => {
+  const w = document.createElement('div');
+  w.className = 'cardw';
+  w.innerHTML = `<div class="card" data-hanji="${c.hanji}" data-kind="${c.kind}">
+      <div class="face back">？</div>
+      <div class="face front">
+        ${c.kind === 'text' ? `<div class="hz">${c.hanji}</div>` : `<div class="spk">🔊</div>`}
+        <div class="tailo">${c.tailo}</div>
+      </div></div>`;
+  const card = w.firstElementChild;
+  card._audio = new Audio(c.audio);
+  card.addEventListener('click', () => flip(card));
+  board.appendChild(w);
+});
+
+function flip(card){
+  if (lock || card.classList.contains('flip') || card.classList.contains('matched')) return;
+  card.classList.add('flip');
+  if (card.dataset.kind === 'audio') { card._audio.currentTime = 0; card._audio.play().catch(()=>{}); }
+  if (!first) { first = card; return; }
+
+  moves += 1;
+  const pair = first.dataset.hanji === card.dataset.hanji && first.dataset.kind !== card.dataset.kind;
+  if (pair) {
+    first.classList.add('matched'); card.classList.add('matched');
+    matched += 1; first = null;
+    streakWrong = 0;
+    setScore(+10);
+    if (matched === VOCAB.length) setTimeout(finish, 800);
+  } else {
+    wrong += 1; streakWrong += 1;
+    setScore(-2);
+    lock = true;
+    const a = first; first = null;
+    setTimeout(() => {
+      a.classList.remove('flip'); card.classList.remove('flip');
+      lock = false;
+      if (streakWrong >= 3) cooldown();
+    }, 900);
+  }
+}
+
+function finish(){
+  const stars = wrong <= 2 ? '⭐⭐⭐' : wrong <= 5 ? '⭐⭐' : '⭐';
+  document.getElementById('finalScore').textContent =
+    `${stars}\n${score} 分　·　翻 ${moves} 擺（毋著 ${wrong} 擺）　·　用時 ${Math.round((Date.now()-t0)/1000)} 秒`;
+  document.getElementById('finalScore').style.whiteSpace = 'pre-line';
+  document.getElementById('doneOverlay').classList.add('show');
+  submitScore({ game: 'memory', lesson: {{ lesson_title|tojson }}, score, moves, wrong,
+                seconds: Math.round((Date.now()-t0)/1000), ts: new Date().toISOString() });
+}
+function submitScore(payload){
+  const q = JSON.parse(localStorage.getItem('taigi_score_queue') || '[]');
+  q.push(payload);
+  localStorage.setItem('taigi_score_queue', JSON.stringify(q));
+}
+</script>
+</body>
+</html>
